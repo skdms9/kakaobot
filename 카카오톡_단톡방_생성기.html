@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>카카오톡 단톡방 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --yellow:#FEE500;
+  --yd:#E6CF00;
+  --brown:#3C1E1E;
+  --bm:#5C3C2E;
+  --bg:#F5F0E8;
+  --card:#FFFFFF;
+  --border:#E2D8CC;
+  --text:#1A1A1A;
+  --text2:#6B5B4E;
+  --green:#2D9E5F;
+  --red:#D93025;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh;color:var(--text);padding-bottom:90px}
+.hd{background:var(--brown);padding:0 16px;display:flex;align-items:center;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.hd-logo{width:34px;height:34px;background:var(--yellow);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;margin-right:11px}
+.hd h1{color:#fff;font-size:16px;font-weight:700}
+.hd p{color:rgba(255,255,255,.5);font-size:10px;margin-top:2px}
+.tabs{display:flex;background:var(--bm);border-bottom:2.5px solid var(--yellow)}
+.tab{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s}
+.tab.on{color:var(--yellow);background:rgba(254,229,0,.07)}
+.tab-ic{font-size:16px;display:block;margin-bottom:2px}
+.wrap{max-width:640px;margin:0 auto;padding:15px 13px}
+.pane{display:none}.pane.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:17px 17px;margin-bottom:13px;box-shadow:0 2px 10px rgba(60,30,30,.07);border:1.5px solid var(--border)}
+.ctitle{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.badge{background:var(--yellow);color:var(--brown);font-size:11px;font-weight:800;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* upload */
+.upwrap{position:relative}
+.upzone{border:2.5px dashed #C4B49A;border-radius:10px;padding:28px 18px;text-align:center;background:#FAF7F2;transition:all .2s;cursor:pointer}
+.upzone:hover,.upzone.over{border-color:var(--yd);background:#FFF9DC}
+.upzone.done{background:#EAF7EF;border:2px solid #4CAF50;padding:13px 18px;cursor:default}
+#fi{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:5}
+#fi.done{pointer-events:none}
+/* select */
+.fl{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:.04em}
+select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;color:var(--text);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%235C3C2E' d='M5 6L0 0h10z'/%3E%3C/svg%3E") no-repeat right 13px center;appearance:none;cursor:pointer}
+select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,229,0,.2)}
+/* venue list */
+.blist{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto}
+.bitem{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;user-select:none}
+.bitem:hover{background:#FFF9DC;border-color:var(--yd)}
+.bitem.on{background:#FFF9DC;border-color:var(--yd);box-shadow:inset 3px 0 0 var(--yd)}
+.bitem input{width:14px;height:14px;accent-color:var(--brown);pointer-events:none;flex-shrink:0}
+.bitem label{font-size:13px;font-weight:600;cursor:pointer;flex:1;pointer-events:none}
+/* btn */
+.genbtn{width:100%;padding:15px;background:var(--yellow);color:var(--brown);border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 14px rgba(254,229,0,.5);display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+.genbtn:hover{background:var(--yd);transform:translateY(-1px)}
+.genbtn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+/* disambiguation */
+.da-card{background:#FFF8E7;border:2px solid var(--yd);border-radius:14px;padding:17px;margin-bottom:13px}
+.da-head{font-size:13px;font-weight:700;color:#7B5800;margin-bottom:3px}
+.da-sub{font-size:11px;color:#9E7A00;margin-bottom:14px;line-height:1.6}
+.da-item{background:#fff;border:1.5px solid #F0D070;border-radius:10px;padding:13px 15px;margin-bottom:10px}
+.da-item:last-child{margin-bottom:0}
+.da-name{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.da-roles{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.da-role-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:#F0E8D0;color:var(--bm)}
+.da-opts{display:flex;flex-direction:column;gap:6px}
+.da-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;border:1.5px solid #E8D8A0;border-radius:8px;cursor:pointer;transition:all .15s;background:#FFFDF0}
+.da-opt:hover{border-color:var(--yd);background:#FFF9DC}
+.da-opt.sel{border-color:var(--yd);background:#FFF9DC;box-shadow:inset 3px 0 0 var(--yd)}
+.da-opt input{accent-color:var(--brown);flex-shrink:0;width:14px;height:14px}
+.da-opt-lbl{font-size:13px;font-weight:600;flex:1}
+.da-opt-note{font-size:11px;color:var(--text2)}
+.da-next{width:100%;padding:13px;background:var(--yellow);color:var(--brown);border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;margin-top:6px}
+.da-next:hover{background:var(--yd)}
+/* result */
+.res-name-box{background:var(--brown);border-radius:12px;padding:15px 17px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.res-name-lbl{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:4px;letter-spacing:.06em}
+.res-name-val{font-size:15px;font-weight:700;color:var(--yellow);word-break:keep-all}
+.copybtn{flex-shrink:0;padding:8px 14px;background:var(--yellow);color:var(--brown);border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
+.copybtn:hover{background:var(--yd)}
+.copybtn.ok{background:#4CAF50;color:#fff}
+.stat-row{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.stat{background:#FAF7F2;border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--text2);font-weight:600}
+.stat strong{font-size:16px;font-weight:800;color:var(--brown);display:block}
+.sec-lbl{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.06em;margin:13px 0 7px;padding-left:2px}
+.m-grid{display:flex;flex-direction:column;gap:5px}
+.m-row{display:flex;align-items:center;gap:9px;padding:9px 12px;background:#FAF7F2;border-radius:9px;border:1.5px solid var(--border)}
+.m-row.fixed{border-color:#C8E6C9;background:#F1F8F3}
+.m-row.warn{border-color:#FFE082;background:#FFFDE7}
+.rb{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.rb-총괄{background:#3C1E1E;color:#FEE500}
+.rb-소장{background:#1565C0;color:#fff}
+.rb-팀장{background:#2E7D32;color:#fff}
+.rb-매니저{background:#6A1B9A;color:#fff}
+.rb-참관{background:#E65100;color:#fff}
+.rb-고정{background:#546E7A;color:#fff}
+.m-kakao{font-size:13px;font-weight:700;flex:1}
+.m-orig{font-size:11px;color:var(--text2)}
+.map-quick{font-size:10px;padding:3px 8px;background:#FFF9DC;border:1px solid var(--yd);border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;color:var(--brown);flex-shrink:0}
+.map-quick:hover{background:var(--yellow)}
+.copy-all{width:100%;padding:12px;background:#fff;color:var(--brown);border:2px solid var(--yd);border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:10px;transition:all .15s}
+.copy-all:hover{background:var(--yellow);border-color:var(--yellow)}
+.copy-all.ok{background:#4CAF50;border-color:#4CAF50;color:#fff}
+.notice{background:#FFF9DC;border:1.5px solid var(--yd);border-radius:9px;padding:11px 14px;font-size:11px;color:#7B6000;line-height:1.75;margin-top:11px}
+/* settings */
+.m-edit-row{display:flex;align-items:center;gap:8px;padding:10px 13px;background:#FAF7F2;border-radius:9px;border:1.5px solid var(--border);margin-bottom:7px}
+.m-edit-row .ns{flex:1;min-width:0}
+.m-edit-row .n1{font-size:13px;font-weight:700}
+.m-edit-row .n2{font-size:11px;color:var(--text2)}
+.delbtn{background:none;border:none;font-size:16px;cursor:pointer;color:#bbb;padding:3px 7px;border-radius:5px}
+.delbtn:hover{background:#FFE0E0;color:var(--red)}
+.add-form{display:none;flex-direction:column;gap:8px;padding:13px;background:#FFF9DC;border-radius:10px;border:1.5px dashed var(--yd);margin-top:10px}
+.add-form.open{display:flex}
+.add-form input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:#fff;color:var(--text)}
+.add-form input:focus{outline:none;border-color:var(--yd)}
+.form-row{display:flex;gap:8px}
+.form-row input{flex:1}
+.fbtn{padding:9px 16px;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.fbtn.pri{background:var(--yellow);color:var(--brown)}
+.fbtn.pri:hover{background:var(--yd)}
+.fbtn.sec{background:#fff;color:var(--text2);border:1.5px solid var(--border)}
+.add-trigger{width:100%;padding:10px;background:#fff;border:1.5px dashed var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--text2);cursor:pointer;font-weight:600;margin-top:4px;transition:all .15s}
+.add-trigger:hover{border-color:var(--yd);color:var(--brown);background:#FFF9DC}
+/* map table */
+.map-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:4px}
+.map-tbl th{font-size:11px;font-weight:700;color:var(--text2);padding:7px 10px;background:#FAF7F2;border-bottom:2px solid var(--border);text-align:left}
+.map-tbl td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.map-tbl tr:last-child td{border-bottom:none}
+.map-tbl tr:hover td{background:#FFF9DC}
+.map-tbl .ex{font-weight:600;color:var(--bm)}
+.map-tbl .kk{font-weight:700}
+.map-tbl .cnt{font-size:10px;color:#999;display:block;font-weight:400}
+.map-tbl .arr{color:var(--text2);text-align:center;width:22px;font-size:11px}
+.map-tbl .act{text-align:right}
+.tbl-del{background:none;border:none;font-size:14px;cursor:pointer;color:#bbb;padding:2px 6px;border-radius:4px}
+.tbl-del:hover{background:#FFE0E0;color:var(--red)}
+/* modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:16px}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal h3{font-size:15px;font-weight:700;color:var(--brown);margin-bottom:16px}
+.mf{margin-bottom:11px}
+.mf label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;letter-spacing:.04em}
+.mf input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text)}
+.mf input:focus{outline:none;border-color:var(--yd)}
+.mf-hint{font-size:11px;color:#999;margin-top:4px;line-height:1.5}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns button{flex:1;padding:11px;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.m-ok{background:var(--yellow);color:var(--brown)}
+.m-cancel{background:#f5f5f5;color:var(--text2)}
+.empty{text-align:center;padding:28px 20px;color:var(--text2);font-size:13px}
+.empty-i{font-size:30px;margin-bottom:8px}
+.hidden{display:none!important}
+.spin{display:inline-block;width:14px;height:14px;border:2.5px solid rgba(60,30,30,.25);border-top-color:var(--brown);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--brown);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:300;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.blist::-webkit-scrollbar,.m-grid::-webkit-scrollbar{width:4px}
+.blist::-webkit-scrollbar-track,.m-grid::-webkit-scrollbar-track{background:#f0ebe3}
+.blist::-webkit-scrollbar-thumb,.m-grid::-webkit-scrollbar-thumb{background:#c4b49a;border-radius:2px}
+
+/* AUTOMATION BUTTONS */
+.auto-btns{display:flex;gap:8px;margin-top:10px}
+.auto-btn{flex:1;padding:13px;border:none;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.3}
+.auto-btn-guide{background:linear-gradient(135deg,#FEE500,#FFD700);color:var(--brown);box-shadow:0 3px 10px rgba(254,229,0,.4)}
+.auto-btn-guide:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(254,229,0,.55)}
+.auto-btn-ahk{background:var(--brown);color:var(--yellow)}
+.auto-btn-ahk:hover{background:var(--bm)}
+
+/* 엑셀 업로드 초기화 버튼 */
+.reset-up{display:none;margin-top:8px;text-align:center}
+.upzone.done~.reset-up{display:block}
+.reset-up-btn{background:none;border:1px solid #D7C7B7;color:#7C6A5A;font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s}
+.reset-up-btn:hover{background:#FFF3E0;border-color:#9E8878;color:#5C4A3A}
+
+/* 진행 상황 바 */
+.prog-card{background:linear-gradient(135deg,#E8F5E9,#F1F8E9);border:1px solid #C8E6C9;border-radius:11px;padding:13px 14px;margin-bottom:13px}
+.prog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.prog-title{font-size:12px;font-weight:700;color:#2E7D32}
+.prog-count{font-size:13px;font-weight:800;color:#1B5E20}
+.prog-bar-bg{height:8px;background:#fff;border-radius:5px;overflow:hidden;border:1px solid #C8E6C9}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,#66BB6A,#43A047);transition:width .3s ease;border-radius:5px}
+.prog-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.prog-actions button{background:none;border:1px solid #A5D6A7;color:#2E7D32;font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:600;padding:4px 9px;border-radius:5px;cursor:pointer}
+.prog-actions button:hover{background:#fff}
+
+/* 멤버 row 체크박스 */
+.m-row{position:relative;cursor:pointer;transition:all .15s}
+.m-row:hover{background:#FFF8E1!important}
+.m-check{display:inline-flex;width:22px;height:22px;border:2px solid #BDBDBD;border-radius:6px;align-items:center;justify-content:center;background:#fff;font-size:13px;color:transparent;margin-right:6px;flex-shrink:0;transition:all .15s}
+.m-row.invited .m-check{background:#43A047;border-color:#43A047;color:#fff}
+.m-row.invited .m-check.auto{background:#1E88E5;border-color:#1E88E5}
+.m-row.invited{background:#F1F8E9!important;border-color:#A5D6A7!important}
+.m-row.invited .m-kakao{color:#558B2F;text-decoration:line-through;text-decoration-color:rgba(85,139,47,.3);text-decoration-thickness:1px}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-logo">💬</div>
+  <div><h1>단톡방 생성기</h1><p>엑셀 일정표 → 카카오톡 단체채팅방</p></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="switchTab(0)"><span class="tab-ic">🏗️</span>만들기</button>
+  <button class="tab" onclick="switchTab(1)"><span class="tab-ic">📇</span>인원명부</button>
+  <button class="tab" onclick="switchTab(2)"><span class="tab-ic">📌</span>고정멤버</button>
+</div>
+
+<!-- TAB 0 -->
+<div class="pane on" id="pane0"><div class="wrap">
+
+  <div class="card">
+    <div class="ctitle"><span class="badge">1</span> 엑셀 파일 업로드</div>
+    <div class="upwrap">
+      <div class="upzone" id="upzone">
+        <div style="font-size:28px;margin-bottom:7px">📁</div>
+        <div style="font-size:13px;font-weight:600;color:#5C4A3A">클릭하거나 파일을 끌어다 놓으세요</div>
+        <div style="font-size:11px;color:#9E8878;margin-top:3px">일정표.xlsx 형식</div>
+      </div>
+      <input type="file" id="fi" accept=".xlsx,.xls">
+      <div class="reset-up">
+        <button class="reset-up-btn" type="button" onclick="resetUpload()">🔄 파일 다시 올리기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card hidden" id="s2">
+    <div class="ctitle"><span class="badge">2</span> 날짜 선택</div>
+    <label class="fl">날짜</label>
+    <select id="dsel"><option value="">— 날짜 선택 —</option></select>
+  </div>
+
+  <div class="card hidden" id="s3">
+    <div class="ctitle"><span class="badge">3</span> 현장 선택</div>
+    <div id="blist" class="blist"></div>
+  </div>
+
+  <div class="hidden" id="ga" style="margin-bottom:13px">
+    <button class="genbtn" id="gbtn" onclick="doGenerate()">💬 단톡방 정보 생성</button>
+  </div>
+
+  <div class="card hidden" id="result">
+    <div class="ctitle" style="color:var(--green)">✅ 단톡방 정보 생성 완료</div>
+    <div class="res-name-box">
+      <div>
+        <div class="res-name-lbl">단톡방 이름</div>
+        <div class="res-name-val" id="res-name">—</div>
+      </div>
+      <button class="copybtn" id="copy-name-btn" onclick="copyGroupName()">복사</button>
+    </div>
+    <div class="stat-row" id="stat-row"></div>
+
+    <!-- 초대 진행 상황 -->
+    <div class="prog-card" id="prog-card">
+      <div class="prog-head">
+        <div class="prog-title">📊 초대 진행 상황</div>
+        <div class="prog-count" id="prog-count">0 / 0</div>
+      </div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-bar-fill" style="width:0%"></div></div>
+      <div class="prog-actions">
+        <button type="button" onclick="checkAllMembers()">✓ 모두 체크</button>
+        <button type="button" onclick="uncheckAllMembers()">초기화</button>
+      </div>
+    </div>
+
+    <div id="member-sections"></div>
+    <button class="copy-all" id="copy-all-btn" onclick="copyAllNames()">📋 초대 목록 전체 복사</button>
+
+    <div class="auto-btns">
+      <button class="auto-btn auto-btn-guide" onclick="runViaHelper()" style="background:linear-gradient(135deg,#FEE500,#FFD700);color:var(--brown);box-shadow:0 3px 10px rgba(254,229,0,.4)">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
+      <button class="auto-btn auto-btn-ahk" onclick="downloadAHK()">📥 AHK 다운로드<br><span style="font-size:10px;font-weight:500;opacity:.8">(설치 안 했으면)</span></button>
+    </div>
+
+    <div style="margin-top:10px;text-align:center">
+      <button onclick="showHelperSetup()" style="background:none;border:none;color:var(--text2);font-size:11px;font-family:inherit;cursor:pointer;text-decoration:underline">⚙ 처음 한 번만 설치 안내</button>
+    </div>
+
+    <div class="notice">
+      💡 <strong>이름 검색 우선순위</strong>: 인원명부(직급 자동) → 엑셀 이름 그대로<br>
+      📇 <strong>인원명부 탭</strong>에서 구글 시트 데이터를 한 번 동기화하면 검색 정확도가 올라갑니다.<br>
+      🚀 <strong>초대 가이드</strong> / 📥 <strong>AutoHotkey F9</strong> 로 자동화 실행.
+    </div>
+  </div>
+
+</div></div>
+
+<!-- TAB 1: 인원명부 -->
+<div class="pane" id="pane-roster"><div class="wrap">
+  <div class="card">
+    <div class="ctitle">📇 인원 명부 (구글 시트 자동 연동)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7">
+      구글 시트의 <strong>B열(이름)</strong>과 <strong>C열(직급)</strong>을 자동으로 가져옵니다. URL 한 번만 입력하면 그 다음부터는 도구를 열 때마다 자동으로 동기화됩니다.
+    </p>
+    <div style="background:#FFF9DC;border-radius:8px;padding:11px 13px;font-size:11px;color:#7B5800;margin-bottom:14px;line-height:1.7">
+      🔒 <strong>직급 잠금 원칙</strong>: 처음 추가된 직급은 보존되며 절대 자동으로 덮어쓰지 않습니다. 시트의 직급이 바뀌어도 명부의 직급은 그대로 유지됩니다. (카카오톡에 저장된 직급은 변하지 않으므로)
+    </div>
+
+    <!-- 연결 안된 상태 -->
+    <div id="sheet-disconnected">
+      <label class="fl">구글 시트 URL</label>
+      <input type="text" id="sheet-url-input" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:12px;background:#fff;color:var(--text);margin-bottom:8px">
+      <button onclick="connectSheet()" class="fbtn pri" style="width:100%;padding:11px;font-size:14px">🔗 시트 연결</button>
+      <div style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.7">
+        💡 <strong>가장 안정적인 방법</strong> (회사 시트 권장):<br>
+        구글 시트 → <strong>[파일]</strong> → <strong>[공유]</strong> → <strong>[웹에 게시]</strong> → 시트 선택, 형식 <strong>CSV</strong> → <strong>[게시]</strong> → 나오는 URL을 위에 붙여넣기<br>
+        <br>
+        또는 개인 시트라면: <strong>[공유]</strong> → <strong>"링크가 있는 모든 사용자"</strong> 설정 후 시트 URL을 붙여넣기
+      </div>
+    </div>
+
+    <!-- 연결된 상태 -->
+    <div id="sheet-connected" class="hidden">
+      <div style="background:#E8F5E9;border:1.5px solid #4CAF50;border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font-size:16px">✓</span>
+          <span style="font-size:13px;font-weight:700;color:#1B5E20">구글 시트 연결됨</span>
+        </div>
+        <div style="font-size:11px;color:#1B5E20;line-height:1.6" id="sheet-status">—</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="manualRefresh()" class="fbtn pri" style="flex:1">🔄 지금 새로고침</button>
+        <button onclick="disconnectSheet()" class="fbtn sec" style="flex:0 0 auto">연결 해제</button>
+      </div>
+    </div>
+
+    <div id="roster-sync-result"></div>
+
+    <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:12px;font-weight:700;color:var(--brown)">저장된 인원 <span id="roster-count" style="color:var(--text2);font-weight:500"></span></div>
+      <button onclick="clearRosterConfirm()" style="background:none;border:none;font-size:11px;color:var(--red);cursor:pointer;font-family:inherit;font-weight:600;padding:4px 8px;border-radius:5px">전체 삭제</button>
+    </div>
+    <div id="roster-list" style="margin-top:8px"></div>
+  </div>
+</div></div>
+
+<!-- TAB 2: 고정멤버 -->
+<div class="pane" id="pane1"><div class="wrap">
+  <div class="card">
+    <div class="ctitle">📌 고정 초대 멤버</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px">엑셀과 무관하게 항상 초대되는 멤버입니다.<br>카카오톡에 저장된 <strong>정확한 이름</strong>을 입력하세요.</p>
+    <div id="fixed-list"></div>
+    <button class="add-trigger" onclick="toggleFixedForm()">+ 고정 멤버 추가</button>
+    <div class="add-form" id="fixed-form">
+      <div style="font-size:13px;font-weight:700;color:var(--brown)">새 고정 멤버</div>
+      <input type="text" id="ff-kakao" placeholder="카카오톡 이름 (필수)" maxlength="30">
+      <input type="text" id="ff-note" placeholder="메모 (예: 이사님, 운영팀장)" maxlength="30">
+      <div class="form-row">
+        <button class="fbtn sec" onclick="toggleFixedForm()">취소</button>
+        <button class="fbtn pri" onclick="addFixed()">추가</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<!-- (도우미 모드 모달은 동적으로 생성됨) -->
+
+<script>
+// ═══ STATE ═══════════════════════════════════════════════════════
+var DATA = {};
+var curDate = '', curBldg = '';
+var resolvedMembers = [];
+
+// ═══ STORAGE ════════════════════════════════════════════════════
+function loadFixed(){ try{ return JSON.parse(localStorage.getItem('kakao_fixed')||'[]'); }catch(e){ return []; } }
+function saveFixed(a){ localStorage.setItem('kakao_fixed',JSON.stringify(a)); }
+// roster format: [{name, title}] — title is locked at first add, never overwritten
+function loadRoster(){ try{ return JSON.parse(localStorage.getItem('kakao_roster')||'[]'); }catch(e){ return []; } }
+function saveRoster(a){ localStorage.setItem('kakao_roster',JSON.stringify(a)); }
+function rosterTitle(name){
+  var r = loadRoster();
+  var hit = r.find(function(x){ return x.name === name; });
+  return hit ? hit.title : null;
+}
+
+// ═══ TABS ═══════════════════════════════════════════════════════
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach(function(t,j){ t.classList.toggle('on',j===i); });
+  document.querySelectorAll('.pane').forEach(function(p,j){ p.classList.toggle('on',j===i); });
+  if(i===1) renderRoster();
+  if(i===2) renderFixedList();
+}
+
+// ═══ UPLOAD ═════════════════════════════════════════════════════
+var upzone=document.getElementById('upzone');
+var fi=document.getElementById('fi');
+upzone.parentElement.addEventListener('dragenter',function(e){ e.preventDefault(); e.stopPropagation(); upzone.classList.add('over'); });
+upzone.parentElement.addEventListener('dragover', function(e){ e.preventDefault(); e.stopPropagation(); upzone.classList.add('over'); });
+upzone.parentElement.addEventListener('dragleave',function(e){ e.preventDefault(); e.stopPropagation(); upzone.classList.remove('over'); });
+upzone.parentElement.addEventListener('drop',function(e){ e.preventDefault(); e.stopPropagation(); upzone.classList.remove('over'); if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change',function(e){ if(e.target.files[0]) loadFile(e.target.files[0]); });
+
+function loadFile(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    DATA=parseRows(rows);
+    fi.classList.add('done');
+    upzone.classList.add('done');
+    upzone.innerHTML='<div style="font-size:13px;font-weight:700;color:#2E7D32">✅ '+esc(file.name)+' — '+Object.keys(DATA).length+'개 날짜 로드</div>';
+    fillDates();
+    show('s2'); ['s3','ga','result'].forEach(hide);
+  };
+  reader.readAsBinaryString(file);
+}
+
+// 엑셀 파일 초기화 — 다른 파일 올릴 수 있게 모든 관련 상태 리셋
+function resetUpload(){
+  DATA={};
+  fi.value='';
+  fi.classList.remove('done');
+  upzone.classList.remove('done');
+  upzone.innerHTML='<div style="font-size:28px;margin-bottom:7px">📁</div>'+
+    '<div style="font-size:13px;font-weight:600;color:#5C4A3A">클릭하거나 파일을 끌어다 놓으세요</div>'+
+    '<div style="font-size:11px;color:#9E8878;margin-top:3px">일정표.xlsx 형식</div>';
+  // 단톡방 이름 입력 후 표시되는 카드들 다 숨기기
+  ['s2','s3','ga','result'].forEach(hide);
+  // 날짜/현장 선택 초기화
+  var dsel=document.getElementById('dsel');
+  if(dsel) dsel.innerHTML='<option value="">— 날짜 선택 —</option>';
+  var blist=document.getElementById('blist');
+  if(blist) blist.innerHTML='';
+  showToast('초기화 완료 — 새 파일을 올려주세요');
+}
+
+// ═══ PARSE ══════════════════════════════════════════════════════
+function parseRows(rows){
+  var data={};
+  var header=rows[0]||[];
+  function col(names){
+    if(!Array.isArray(names)) names=[names];
+    for(var ni=0;ni<names.length;ni++){
+      var nm=names[ni].toLowerCase().replace(/[_\s]/g,'');
+      for(var ci=0;ci<header.length;ci++){
+        if(String(header[ci]||'').toLowerCase().replace(/[_\s]/g,'')===nm) return ci;
+      }
+    }
+    return -1;
+  }
+  var C={총괄:col('총괄'),소장:col('소장'),팀장:col('팀장'),매니저:col('매니저'),참관:col('참관')};
+  // 이름 정제: 뒤에 붙은 (텍스트) 제거. 예: "김민수 (팀장)" → "김민수"
+  function stripParens(s){ return String(s||'').replace(/\s*\([^)]*\)\s*$/, '').trim(); }
+  function g(r,k){ return C[k]>=0?stripParens(r[C[k]]):''; }
+  for(var i=1;i<rows.length;i++){
+    var r=rows[i];
+    var date=String(r[0]||'').trim();
+    var bldg=String(r[1]||'').trim();
+    var tc=String(r[2]||'').trim();
+    if(!date||!bldg||bldg==='입주전 및 사후점검') continue;
+    if(tc.indexOf('시간대')>=0) continue;
+    if(tc.indexOf('{{INDEX}}')>=0||tc.indexOf('공용부')>=0){
+      if(!data[date]) data[date]={};
+      if(!data[date][bldg]) data[date][bldg]=[];
+      ['총괄','소장','팀장','매니저','참관'].forEach(function(role){
+        var name=g(r,role);
+        if(name) data[date][bldg].push({name:name,role:role});
+      });
+    }
+  }
+  // 빈 현장 및 빈 날짜 제거 (인원 미배정 행 제외)
+  Object.keys(data).forEach(function(d){
+    Object.keys(data[d]).forEach(function(b){
+      if(data[d][b].length===0) delete data[d][b];
+    });
+    if(Object.keys(data[d]).length===0) delete data[d];
+  });
+  return data;
+}
+
+// ═══ DATE / VENUE ════════════════════════════════════════════════
+function fillDates(){
+  var sel=document.getElementById('dsel');
+  sel.innerHTML='<option value="">— 날짜 선택 —</option>';
+  Object.keys(DATA).sort(function(a,b){
+    function td(s){ var m=s.match(/(\d+)년\s*(\d+)월\s*(\d+)일/); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
+    return td(a)-td(b);
+  }).forEach(function(d){
+    var o=document.createElement('option');
+    o.value=d; o.textContent=d+'  ('+Object.keys(DATA[d]).length+'개 현장)';
+    sel.appendChild(o);
+  });
+  sel.onchange=function(){
+    curDate=sel.value; curBldg='';
+    ['ga','result'].forEach(hide);
+    if(curDate){ buildBldgList(); show('s3'); } else hide('s3');
+  };
+}
+
+function buildBldgList(){
+  var list=document.getElementById('blist'); list.innerHTML='';
+  Object.keys(DATA[curDate]||{}).sort().forEach(function(b,i){
+    var item=document.createElement('div'); item.className='bitem'+(b===curBldg?' on':'');
+    var inp=document.createElement('input'); inp.type='radio'; inp.name='bg'; inp.value=b; inp.id='b'+i; inp.checked=b===curBldg;
+    var lbl=document.createElement('label'); lbl.htmlFor='b'+i;
+    lbl.textContent=b+'  ('+dedup(DATA[curDate][b]).length+'명)';
+    item.appendChild(inp); item.appendChild(lbl);
+    item.addEventListener('click',function(){
+      list.querySelectorAll('.bitem').forEach(function(el){el.classList.remove('on');});
+      list.querySelectorAll('input').forEach(function(el){el.checked=false;});
+      inp.checked=true; item.classList.add('on'); curBldg=b;
+      show('ga'); ['result'].forEach(hide);
+    });
+    list.appendChild(item);
+  });
+}
+
+// ═══ GENERATE FLOW ═══════════════════════════════════════════════
+function doGenerate(){
+  var btn=document.getElementById('gbtn');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> 분석 중...';
+  setTimeout(function(){
+    try{
+      buildFinalResult();
+      show('result');
+    } finally {
+      btn.disabled=false; btn.innerHTML='💬 단톡방 정보 생성';
+    }
+  },60);
+}
+
+// ═══ FINAL RESULT ════════════════════════════════════════════════
+function buildFinalResult(){
+  var gn=buildGroupName(curDate,curBldg);
+  document.getElementById('res-name').textContent=gn;
+  document.getElementById('copy-name-btn').classList.remove('ok');
+  document.getElementById('copy-name-btn').textContent='복사';
+
+  var persons=dedup(DATA[curDate]&&DATA[curDate][curBldg]?DATA[curDate][curBldg]:[]);
+  var fixed=loadFixed();
+
+  resolvedMembers=[];
+  persons.forEach(function(p){
+    // 인원명부 조회
+    // 1. 명부에 있으면: "이름 + 잠긴 직급"으로 검색 (가장 안정적)
+    // 2. 명부에 없으면: 엑셀 이름 그대로 사용 + 경고
+    var lockedTitle = rosterTitle(p.name);
+    var isPure = isPureKorean(p.name);
+    if(lockedTitle){
+      resolvedMembers.push({
+        excelName: p.name,
+        kakaoName: p.name + ' ' + lockedTitle,
+        role: p.role,
+        autoRole: lockedTitle,
+        mapped: false,
+        isAuto: true,
+        fromRoster: true,
+        needsCheck: false
+      });
+    } else {
+      // 명부에 없음: 엑셀 이름 그대로 (순수 한글이면 경고)
+      resolvedMembers.push({
+        excelName: p.name,
+        kakaoName: p.name,
+        role: p.role,
+        mapped: false,
+        isAuto: false,
+        fromRoster: false,
+        needsCheck: isPure  // 순수 한글인데 명부 없음 → 명부 등록 필요
+      });
+    }
+  });
+
+  // Stats
+  var roles=['총괄','소장','팀장','매니저','참관'];
+  var rc={}; roles.forEach(function(r){rc[r]=0;});
+  resolvedMembers.forEach(function(p){ if(rc[p.role]!==undefined&&!p.isExtra) rc[p.role]++; });
+  var statRow=document.getElementById('stat-row'); statRow.innerHTML='';
+  var total=resolvedMembers.filter(function(p){return !p.isExtra;}).length+fixed.length;
+  var manualCount = resolvedMembers.filter(function(p){return p.needsCheck;}).length;
+  function mks(big,sm){ var d=document.createElement('div'); d.className='stat'; d.innerHTML='<strong>'+big+'</strong>'+sm; return d; }
+  statRow.appendChild(mks(total,'총 멤버'));
+  roles.forEach(function(r){ if(rc[r]>0) statRow.appendChild(mks(rc[r],r)); });
+  if(fixed.length) statRow.appendChild(mks(fixed.length,'고정'));
+  if(manualCount > 0){
+    var d = document.createElement('div');
+    d.className = 'stat';
+    d.style.background = '#FFF3E0';
+    d.style.color = '#E65100';
+    d.innerHTML = '<strong>'+manualCount+'</strong>수동';
+    d.title = '명부에 없어 자동화에서 제외 — 단톡방 생성 후 수동 추가 필요';
+    statRow.appendChild(d);
+  }
+
+  // Member sections
+  var ms=document.getElementById('member-sections'); ms.innerHTML='';
+  function addSec(label,items){
+    if(!items.length) return;
+    var lbl=document.createElement('div'); lbl.className='sec-lbl'; lbl.textContent=label; ms.appendChild(lbl);
+    var grid=document.createElement('div'); grid.className='m-grid';
+    items.forEach(function(m){
+      var row=document.createElement('div');
+      row.className='m-row'+(m.isFixed?' fixed':m.needsCheck?' warn':'');
+      row.setAttribute('data-member', m.kakaoName);
+      // 체크박스 (초대됨 표시)
+      var cb=document.createElement('span'); cb.className='m-check'; cb.textContent='';
+      row.appendChild(cb);
+      var rb=document.createElement('span'); rb.className='rb rb-'+(m.isFixed?'고정':m.role); rb.textContent=m.isFixed?'고정':m.role;
+      var kn=document.createElement('span'); kn.className='m-kakao'; kn.textContent=m.kakaoName;
+      row.appendChild(rb); row.appendChild(kn);
+      if(m.mapped&&m.excelName!==m.kakaoName){
+        var orig=document.createElement('span'); orig.className='m-orig'; orig.textContent='(매핑됨)';
+        row.appendChild(orig);
+      } else if(m.fromRoster){
+        var src=document.createElement('span'); src.className='m-orig';
+        src.textContent='📇 명부:' + m.autoRole;
+        src.style.color='#2D9E5F';
+        row.appendChild(src);
+      } else if(m.needsCheck){
+        var wi=document.createElement('span'); wi.style.fontSize='12px'; wi.title='명부에 없음 — 명부 등록 필요'; wi.textContent='⚠️'; row.appendChild(wi);
+        var qb=document.createElement('button'); qb.className='map-quick'; qb.textContent='명부추가';
+        qb.title='인원명부 탭에서 이 사람을 추가하세요';
+        (function(name){ qb.onclick=function(e){ e.stopPropagation(); switchTab(1); showToast('"'+name+'" 을(를) 명부에 추가하세요'); }; })(m.excelName);
+        row.appendChild(qb);
+      }
+      // 행 클릭으로 체크 토글 (수동 체크)
+      (function(name){
+        row.onclick = function(e){
+          // 버튼 클릭 시 토글 안 함
+          if (e.target.tagName === 'BUTTON') return;
+          toggleMemberInvited(name);
+        };
+      })(m.kakaoName);
+      grid.appendChild(row);
+    });
+    ms.appendChild(grid);
+  }
+
+  addSec('📌 고정 멤버', fixed.map(function(f){ return {kakaoName:f.kakaoName,isFixed:true,note:f.note,needsCheck:false,mapped:true}; }));
+  roles.forEach(function(role){
+    var rp=resolvedMembers.filter(function(p){return p.role===role;});
+    if(rp.length) addSec(roleIcon(role)+' '+role, rp);
+  });
+
+  document.getElementById('copy-all-btn').textContent='📋 초대 목록 전체 복사';
+  document.getElementById('copy-all-btn').classList.remove('ok');
+
+  // 진행 상황 복원 + 진행률 갱신
+  applyInvitedStatusToRows();
+  updateProgressBar();
+}
+
+// ═══ INVITE PROGRESS ════════════════════════════════════════════════
+// 멤버별 초대 완료 상태를 localStorage에 그룹이름별로 저장
+function inviteStatusKey(groupName){ return 'kakao_invite_status:'+groupName; }
+function loadInviteStatus(groupName){
+  if(!groupName) return {};
+  try { return JSON.parse(localStorage.getItem(inviteStatusKey(groupName))||'{}'); }
+  catch(e){ return {}; }
+}
+function saveInviteStatus(groupName, status){
+  if(!groupName) return;
+  localStorage.setItem(inviteStatusKey(groupName), JSON.stringify(status));
+}
+function currentGroupName(){
+  var el=document.getElementById('res-name');
+  if(!el) return '';
+  var n=el.textContent;
+  return (n && n !== '—') ? n : '';
+}
+function getAllMemberRows(){
+  return document.querySelectorAll('#member-sections .m-row[data-member]');
+}
+function applyInvitedStatusToRows(){
+  var groupName=currentGroupName();
+  if(!groupName) return;
+  var status=loadInviteStatus(groupName);
+  getAllMemberRows().forEach(function(row){
+    var name=row.getAttribute('data-member');
+    var state=status[name];
+    setRowInvitedUI(row, state);
+  });
+}
+function setRowInvitedUI(row, state){
+  if(state==='auto' || state==='manual'){
+    row.classList.add('invited');
+    var cb=row.querySelector('.m-check');
+    if(cb){
+      cb.textContent='✓';
+      cb.classList.toggle('auto', state==='auto');
+    }
+  } else {
+    row.classList.remove('invited');
+    var cb2=row.querySelector('.m-check');
+    if(cb2){ cb2.textContent=''; cb2.classList.remove('auto'); }
+  }
+}
+function toggleMemberInvited(memberName){
+  var groupName=currentGroupName();
+  if(!groupName) return;
+  var status=loadInviteStatus(groupName);
+  if(status[memberName]){
+    delete status[memberName];
+  } else {
+    status[memberName]='manual';
+  }
+  saveInviteStatus(groupName, status);
+  applyInvitedStatusToRows();
+  updateProgressBar();
+}
+function markMemberAutoInvited(memberName){
+  var groupName=currentGroupName();
+  if(!groupName) return false;
+  // 명단에 있는지 확인
+  var row=document.querySelector('#member-sections .m-row[data-member="'+(window.CSS && CSS.escape ? CSS.escape(memberName) : memberName.replace(/"/g,'\\"'))+'"]');
+  if(!row) return false;
+  var status=loadInviteStatus(groupName);
+  if(status[memberName]==='auto' || status[memberName]==='manual') return false; // 이미 체크됨
+  status[memberName]='auto';
+  saveInviteStatus(groupName, status);
+  setRowInvitedUI(row, 'auto');
+  updateProgressBar();
+  return true;
+}
+function updateProgressBar(){
+  var groupName=currentGroupName();
+  var rows=getAllMemberRows();
+  var total=rows.length;
+  var status=loadInviteStatus(groupName);
+  var done=0;
+  rows.forEach(function(row){
+    var name=row.getAttribute('data-member');
+    if(status[name]) done++;
+  });
+  var pct=total>0?Math.round(done/total*100):0;
+  var fill=document.getElementById('prog-bar-fill');
+  var cnt=document.getElementById('prog-count');
+  if(fill) fill.style.width=pct+'%';
+  if(cnt) cnt.textContent=done+' / '+total+' ('+pct+'%)';
+}
+function checkAllMembers(){
+  var groupName=currentGroupName();
+  if(!groupName) return;
+  var status=loadInviteStatus(groupName);
+  getAllMemberRows().forEach(function(row){
+    var name=row.getAttribute('data-member');
+    if(!status[name]) status[name]='manual';
+  });
+  saveInviteStatus(groupName, status);
+  applyInvitedStatusToRows();
+  updateProgressBar();
+  showToast('모든 멤버 체크 완료');
+}
+function uncheckAllMembers(){
+  var groupName=currentGroupName();
+  if(!groupName) return;
+  if(!confirm('이 단톡방의 초대 진행 상황을 초기화할까요?')) return;
+  localStorage.removeItem(inviteStatusKey(groupName));
+  applyInvitedStatusToRows();
+  updateProgressBar();
+  showToast('초기화 완료');
+}
+
+// AHK 진행 신호: 클립보드에 [KAKAOBOT_PROG]\n{groupName}\n{memberName} 들어오면 자동 체크
+// 또는 [KAKAOBOT_DONE]\n{groupName}\n{name1}\n{name2}... 들어오면 한 번에 다 체크 (안전망)
+var lastPolledClip='';
+async function pollClipboardProgress(){
+  if(!document.hasFocus()) return;
+  if(!navigator.clipboard || !navigator.clipboard.readText) return;
+  try {
+    var txt = await navigator.clipboard.readText();
+    if(txt === lastPolledClip) return;
+    lastPolledClip = txt;
+    if(typeof txt !== 'string') return;
+    if(txt.indexOf('[KAKAOBOT_PROG]') === 0){
+      var lines = txt.split(/\r?\n/);
+      var gn = (lines[1]||'').trim();
+      var mn = (lines[2]||'').trim();
+      if(gn && mn && gn === currentGroupName()){
+        markMemberAutoInvited(mn);
+      }
+    } else if(txt.indexOf('[KAKAOBOT_DONE]') === 0){
+      // 안전망: AHK가 마지막에 모든 멤버 명단을 한 번에 보냄
+      var lines2 = txt.split(/\r?\n/);
+      var gn2 = (lines2[1]||'').trim();
+      if(gn2 && gn2 === currentGroupName()){
+        var names = lines2.slice(2).map(function(s){return s.trim();}).filter(Boolean);
+        names.forEach(function(n){ markMemberAutoInvited(n); });
+      }
+    }
+  } catch(e) {
+    // 클립보드 권한 없음 또는 페이지 비활성 — 무시
+  }
+}
+// 페이지가 보이는 동안 500ms 주기로 폴링
+setInterval(pollClipboardProgress, 500);
+// 페이지 포커스 복귀 시 즉시 한 번
+window.addEventListener('focus', pollClipboardProgress);
+
+// ═══ COPY ════════════════════════════════════════════════════════
+function copyGroupName(){
+  var name=document.getElementById('res-name').textContent;
+  copyText(name,function(){
+    var btn=document.getElementById('copy-name-btn');
+    btn.textContent='✓ 복사됨'; btn.classList.add('ok');
+    setTimeout(function(){btn.textContent='복사';btn.classList.remove('ok');},2000);
+  });
+}
+function copyAllNames(){
+  var fixed=loadFixed();
+  var lines=[];
+  fixed.forEach(function(f){lines.push(f.kakaoName);});
+  resolvedMembers.forEach(function(p){lines.push(p.kakaoName);});
+  var uniq=[],seen={};
+  lines.forEach(function(n){if(!seen[n]){seen[n]=true;uniq.push(n);}});
+  copyText(uniq.join('\n'),function(){
+    var btn=document.getElementById('copy-all-btn');
+    btn.textContent='✓ '+uniq.length+'명 복사됨'; btn.classList.add('ok');
+    setTimeout(function(){btn.textContent='📋 초대 목록 전체 복사';btn.classList.remove('ok');},2500);
+    showToast(uniq.length+'명 이름이 클립보드에 복사되었습니다');
+  });
+}
+function copyText(text,cb){
+  if(navigator.clipboard){ navigator.clipboard.writeText(text).then(cb).catch(function(){fb(text,cb);}); }
+  else fb(text,cb);
+}
+function fb(text,cb){
+  var ta=document.createElement('textarea'); ta.value=text;
+  ta.style.cssText='position:fixed;top:-9999px;left:-9999px';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{document.execCommand('copy');if(cb)cb();}catch(e){}
+  document.body.removeChild(ta);
+}
+
+// ═══ ROSTER (인원명부) ═══════════════════════════════════════════
+// URL 기반 자동 동기화. localStorage에 URL 저장.
+// 첫 동기화: 모든 인원 추가
+// 이후 동기화: 신규 인원만 추가 (직급은 잠금 유지)
+
+function loadSheetUrl(){ return localStorage.getItem('kakao_sheet_url') || ''; }
+function saveSheetUrl(u){ localStorage.setItem('kakao_sheet_url', u); }
+function clearSheetUrl(){ localStorage.removeItem('kakao_sheet_url'); }
+function loadSyncedAt(){ var v = localStorage.getItem('kakao_sheet_synced_at'); return v ? parseInt(v, 10) : 0; }
+function saveSyncedAt(t){ localStorage.setItem('kakao_sheet_synced_at', String(t)); }
+
+function extractSheetId(url){
+  // 1. 반드시 docs.google.com 도메인이어야 함
+  // 2. /spreadsheets/d/{ID}/ 패턴 매칭 (단, /d/e/는 게시 URL이라 제외)
+  if(!/docs\.google\.com\/spreadsheets/.test(url)) return null;
+  var m = url.match(/\/spreadsheets\/d\/(?!e\/)([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+function extractGid(url){
+  var m = url.match(/[#?&]gid=(\d+)/);
+  return m ? m[1] : '0';
+}
+function isPublishUrl(url){
+  return /docs\.google\.com\/spreadsheets\/d\/e\//.test(url);
+}
+
+// CSV 파서 (따옴표/콤마 안전)
+function parseCSV(text){
+  var rows = [], row = [], cell = '', inQ = false;
+  for(var i = 0; i < text.length; i++){
+    var c = text[i], n = text[i+1];
+    if(inQ){
+      if(c === '"' && n === '"'){ cell += '"'; i++; }
+      else if(c === '"'){ inQ = false; }
+      else { cell += c; }
+    } else {
+      if(c === '"'){ inQ = true; }
+      else if(c === ','){ row.push(cell); cell = ''; }
+      else if(c === '\n' || c === '\r'){
+        if(c === '\r' && n === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else { cell += c; }
+    }
+  }
+  if(cell.length > 0 || row.length > 0){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+// 구글 시트 CSV fetch — 게시 URL과 일반 URL 모두 지원
+// 구글의 CORS 제한 때문에 직접 fetch가 실패하면 CORS 프록시로 우회
+function fetchSheetCsv(url, callback){
+  var directEndpoints;
+
+  if(isPublishUrl(url)){
+    // 게시 URL: 그대로 사용, output=csv만 보장
+    var csvUrl = url.replace('/pubhtml', '/pub');
+    if(csvUrl.indexOf('output=csv') < 0){
+      csvUrl = csvUrl.replace(/[?&]output=[^&#]*/g, '');
+      csvUrl += (csvUrl.indexOf('?') >= 0 ? '&' : '?') + 'output=csv';
+    }
+    var gidM = url.match(/[#?&]gid=(\d+)/);
+    if(gidM && csvUrl.indexOf('gid=') < 0){
+      csvUrl += '&gid=' + gidM[1];
+    }
+    csvUrl = csvUrl.split('#')[0];
+    directEndpoints = [csvUrl];
+  } else {
+    // 일반 시트 URL
+    var id = extractSheetId(url);
+    if(!id){ callback(new Error('유효한 구글 시트 URL이 아닙니다.\nhttps://docs.google.com/spreadsheets/d/... 형식이어야 합니다.'), null); return; }
+    var gid = extractGid(url);
+    directEndpoints = [
+      'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:csv&gid=' + gid,
+      'https://docs.google.com/spreadsheets/d/' + id + '/export?format=csv&gid=' + gid
+    ];
+  }
+
+  // 직접 endpoint들 + CORS 프록시 우회 endpoint들
+  var endpoints = directEndpoints.slice();
+  directEndpoints.forEach(function(d){
+    // corsproxy.io 형식: ?{encoded_url}  (key 없이 query string에 URL만)
+    endpoints.push('https://corsproxy.io/?' + encodeURIComponent(d));
+  });
+  directEndpoints.forEach(function(d){
+    // allorigins.win 형식: ?url={encoded_url}
+    endpoints.push('https://api.allorigins.win/raw?url=' + encodeURIComponent(d));
+  });
+  directEndpoints.forEach(function(d){
+    // codetabs 백업 프록시
+    endpoints.push('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(d));
+  });
+
+  var lastErr = null;
+  var attempts = [];
+  function tryNext(i){
+    if(i >= endpoints.length){
+      var errMsg = (lastErr ? lastErr.message : '알 수 없는 오류') + '\n\n시도한 endpoint ' + endpoints.length + '개 모두 실패';
+      console.error('[Sheet Sync] 모든 endpoint 실패:', attempts);
+      callback(new Error(errMsg), null);
+      return;
+    }
+    var ep = endpoints[i];
+    var epLabel = ep.indexOf('corsproxy.io') >= 0 ? 'corsproxy.io' :
+                  ep.indexOf('allorigins.win') >= 0 ? 'allorigins.win' :
+                  ep.indexOf('codetabs.com') >= 0 ? 'codetabs.com' :
+                  ep.indexOf('googleusercontent.com') >= 0 ? 'googleusercontent' : 'docs.google.com (직접)';
+    console.log('[Sheet Sync] ' + (i+1) + '/' + endpoints.length + ' 시도: ' + epLabel);
+    fetch(ep, { credentials: 'omit' }).then(function(res){
+      if(!res.ok){
+        var err = new Error('HTTP ' + res.status);
+        err.status = res.status;
+        throw err;
+      }
+      return res.text();
+    }).then(function(text){
+      var trimmed = text.trim();
+      if(trimmed.charAt(0) === '<' || /<!DOCTYPE\s+html|<html/i.test(trimmed.substring(0, 200))){
+        throw new Error('HTML 응답 (프록시 또는 시트 차단)');
+      }
+      if(trimmed.length === 0){
+        throw new Error('빈 응답');
+      }
+      console.log('[Sheet Sync] ✓ ' + epLabel + ' 성공');
+      callback(null, text);
+    }).catch(function(err){
+      lastErr = err;
+      attempts.push(epLabel + ': ' + err.message);
+      console.warn('[Sheet Sync] ' + epLabel + ' 실패 — ' + err.message);
+      tryNext(i + 1);
+    });
+  }
+
+  tryNext(0);
+}
+
+// CSV 텍스트 → 명부 sync (immutable-first-write + 헤더 자동 감지)
+function syncRosterFromCsv(csv){
+  var rows = parseCSV(csv);
+  var roster = loadRoster();
+  var existing = {};
+  roster.forEach(function(r){ existing[r.name] = true; });
+  var added = 0, skipped = 0, invalid = 0;
+
+  // 헤더에서 이름/직급 열 자동 감지
+  var nameCol = -1, titleCol = -1, hasHeader = false;
+  if(rows.length > 0){
+    rows[0].forEach(function(cell, idx){
+      var c = (cell || '').trim().toLowerCase();
+      // 이름 계열: 이름, 성명, 성함, name (전체 일치)
+      if(/이름|성명|성함|^name$/i.test(c) && nameCol < 0) nameCol = idx;
+      // 직급 계열: 직급, 직책, 직위, 직함, position, title, role (전체 일치)
+      if(/직급|직책|직위|직함|^position$|^title$|^role$/i.test(c) && titleCol < 0) titleCol = idx;
+    });
+    if(nameCol >= 0 && titleCol >= 0) hasHeader = true;
+  }
+
+  // 헤더 자동 감지 실패 시 기본값 사용 (B=이름, C=직급)
+  if(!hasHeader){
+    nameCol = 1;
+    titleCol = 2;
+  }
+
+  rows.forEach(function(cells, i){
+    // 헤더 행은 건너뜀
+    if(hasHeader && i === 0) return;
+    var name = (cells[nameCol] || '').trim();
+    var title = (cells[titleCol] || '').trim();
+    // 헤더 자동 감지 실패한 경우, 첫 행이 헤더 같으면 건너뜀
+    if(!hasHeader && i === 0 && (/이름|성명|name/i.test(name) || /직급|직책|직위|title|position/i.test(title))) return;
+    if(!name || !title){ if(name || title) invalid++; return; }
+    if(existing[name]){ skipped++; }
+    else { roster.push({name: name, title: title}); existing[name] = true; added++; }
+  });
+
+  saveRoster(roster);
+  return {
+    added: added,
+    skipped: skipped,
+    invalid: invalid,
+    total: roster.length,
+    rowsSeen: rows.length,
+    nameCol: nameCol,
+    titleCol: titleCol,
+    hasHeader: hasHeader,
+    firstDataRow: rows.length > (hasHeader ? 1 : 0) ? rows[hasHeader ? 1 : 0] : null
+  };
+}
+
+// 열 번호 → 알파벳 (0→A, 1→B, ...)
+function colLabel(idx){ return String.fromCharCode(65 + idx); }
+
+function connectSheet(){
+  var url = document.getElementById('sheet-url-input').value.trim();
+  if(!url){ showToast('URL을 입력하세요'); return; }
+  if(!extractSheetId(url) && !isPublishUrl(url)){ showToast('유효한 구글 시트 URL이 아닙니다'); return; }
+
+  var btn = document.querySelector('#sheet-disconnected button.fbtn.pri');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 연결 중...';
+
+  fetchSheetCsv(url, function(err, csv){
+    btn.disabled = false; btn.innerHTML = '🔗 시트 연결';
+    if(err){
+      document.getElementById('roster-sync-result').innerHTML =
+        '<div style="background:#FFEBEE;border:1.5px solid #D93025;border-radius:9px;padding:12px 14px;font-size:12px;color:#B71C1C;margin-top:10px;line-height:1.7">'
+        + '<div style="font-weight:700;margin-bottom:6px">❌ 시트 연결 실패</div>'
+        + '<div style="margin-bottom:8px;color:#7B1818;font-size:11px">' + esc(err.message) + '</div>'
+        + '<div style="background:#fff;border-radius:6px;padding:10px 12px;color:#333;font-size:11px;line-height:1.8">'
+        + '<strong style="color:#B71C1C">해결 방법 (가장 안정적)</strong><br>'
+        + '구글 시트에서 <strong>[파일]</strong> → <strong>[공유]</strong> → <strong>[웹에 게시]</strong><br>'
+        + '<strong>1.</strong> 인원 정보가 있는 시트 탭 선택<br>'
+        + '<strong>2.</strong> 형식: <strong>쉼표로 구분된 값(.csv)</strong> 선택<br>'
+        + '<strong>3.</strong> <strong>[게시]</strong> 클릭 → <strong>[확인]</strong><br>'
+        + '<strong>4.</strong> 나오는 URL(/d/e/2PACX-...로 시작)을 복사해 다시 시도<br>'
+        + '<br>'
+        + '💡 회사 워크스페이스 시트는 "링크가 있는 모든 사용자" 설정으로도 외부 접근이 차단될 수 있어 "웹에 게시"가 가장 확실합니다.'
+        + '</div></div>';
+      return;
+    }
+    var result = syncRosterFromCsv(csv);
+    saveSheetUrl(url);
+    saveSyncedAt(Date.now());
+    document.getElementById('sheet-url-input').value = '';
+    var diag = '';
+    if(result.added === 0 && result.total === 0){
+      var firstRowHTML = result.firstDataRow ?
+        '<div style="font-size:11px;color:#666;margin-top:6px;background:#FAFAFA;padding:8px;border-radius:4px;font-family:monospace">'
+        + '첫 데이터 행: ' + esc(result.firstDataRow.map(function(c, i){ return colLabel(i) + ':"' + (c || '') + '"'; }).join(' | '))
+        + '</div>' : '';
+      diag = '<div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:9px;padding:10px 13px;font-size:12px;color:#E65100;margin-top:10px;line-height:1.7">'
+        + '⚠ 데이터 행을 찾지 못했습니다. <strong>총 ' + result.rowsSeen + '행</strong> 읽었지만 이름+직급 컬럼을 못 찾았습니다.<br>'
+        + '시도한 열: <strong>' + colLabel(result.nameCol) + '=이름, ' + colLabel(result.titleCol) + '=직급</strong>'
+        + (result.hasHeader ? ' (헤더 자동 감지됨)' : ' (헤더 자동 감지 실패, 기본값 사용)')
+        + firstRowHTML
+        + '<br>👉 시트의 컬럼 배치를 확인하거나, 첫 행에 "이름", "직급" 같은 헤더를 추가하세요.'
+        + '</div>';
+    } else {
+      diag = '<div style="background:#E8F5E9;border:1.5px solid #4CAF50;border-radius:9px;padding:10px 13px;font-size:12px;color:#1B5E20;margin-top:10px;line-height:1.7">'
+        + '✓ 연결 성공! <strong>' + result.added + '명 추가</strong>, 명부 총 ' + result.total + '명'
+        + '<br><span style="font-size:11px;color:#558B57">감지 열: ' + colLabel(result.nameCol) + '=이름, ' + colLabel(result.titleCol) + '=직급'
+        + (result.hasHeader ? ' (헤더 자동 감지)' : ' (헤더 없음, 기본값)')
+        + '</span></div>';
+    }
+    document.getElementById('roster-sync-result').innerHTML = diag;
+    renderRoster();
+    updateConnectionUI();
+    if(!document.getElementById('result').classList.contains('hidden')) buildFinalResult();
+  });
+}
+
+function manualRefresh(){
+  var url = loadSheetUrl();
+  if(!url){ showToast('연결된 시트가 없습니다'); return; }
+  var btn = document.querySelector('#sheet-connected button.fbtn.pri');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 새로고침 중...';
+
+  fetchSheetCsv(url, function(err, csv){
+    btn.disabled = false; btn.innerHTML = '🔄 지금 새로고침';
+    if(err){
+      document.getElementById('roster-sync-result').innerHTML =
+        '<div style="background:#FFEBEE;border:1.5px solid #D93025;border-radius:9px;padding:10px 13px;font-size:12px;color:#B71C1C;margin-top:10px">❌ ' + esc(err.message) + '</div>';
+      return;
+    }
+    var result = syncRosterFromCsv(csv);
+    saveSyncedAt(Date.now());
+    document.getElementById('roster-sync-result').innerHTML =
+      '<div style="background:#E8F5E9;border:1.5px solid #4CAF50;border-radius:9px;padding:10px 13px;font-size:12px;color:#1B5E20;margin-top:10px">'
+      + '✓ 동기화 완료: <strong>' + result.added + '명 신규</strong>, ' + result.skipped + '명 기존 유지</div>';
+    renderRoster();
+    updateConnectionUI();
+    if(!document.getElementById('result').classList.contains('hidden')) buildFinalResult();
+  });
+}
+
+function disconnectSheet(){
+  if(!confirm('시트 연결을 해제하시겠습니까? 저장된 명부는 유지됩니다.')) return;
+  clearSheetUrl();
+  document.getElementById('roster-sync-result').innerHTML = '';
+  updateConnectionUI();
+  showToast('연결 해제됨');
+}
+
+function updateConnectionUI(){
+  var url = loadSheetUrl();
+  if(url){
+    document.getElementById('sheet-disconnected').classList.add('hidden');
+    document.getElementById('sheet-connected').classList.remove('hidden');
+    var syncedAt = loadSyncedAt();
+    var ago = syncedAt ? formatTimeAgo(Date.now() - syncedAt) : '아직 동기화 안됨';
+    var rosterCount = loadRoster().length;
+    document.getElementById('sheet-status').textContent = '마지막 동기화: ' + ago + ' · 저장된 인원 ' + rosterCount + '명';
+  } else {
+    document.getElementById('sheet-disconnected').classList.remove('hidden');
+    document.getElementById('sheet-connected').classList.add('hidden');
+  }
+}
+
+function formatTimeAgo(ms){
+  var s = Math.floor(ms / 1000);
+  if(s < 60) return '방금';
+  var m = Math.floor(s / 60);
+  if(m < 60) return m + '분 전';
+  var h = Math.floor(m / 60);
+  if(h < 24) return h + '시간 전';
+  var d = Math.floor(h / 24);
+  return d + '일 전';
+}
+
+// 페이지 로드 시 자동 동기화 (URL이 등록된 경우)
+function autoSyncOnLoad(){
+  var url = loadSheetUrl();
+  if(!url) return;
+  fetchSheetCsv(url, function(err, csv){
+    if(err){
+      // 조용히 실패 (사용자가 의식하지 않도록). 명부탭 들어가면 마지막 동기화 시간으로 알 수 있음
+      return;
+    }
+    syncRosterFromCsv(csv);
+    saveSyncedAt(Date.now());
+    updateConnectionUI();
+    renderRoster();
+    if(!document.getElementById('result').classList.contains('hidden')) buildFinalResult();
+  });
+}
+
+function renderRoster(){
+  var list = document.getElementById('roster-list');
+  var arr = loadRoster();
+  document.getElementById('roster-count').textContent = '(' + arr.length + '명)';
+  list.innerHTML = '';
+  if(!arr.length){
+    list.innerHTML = '<div class="empty"><div class="empty-i">📇</div>저장된 인원이 없습니다.<br>위에서 구글 시트를 연결하세요.</div>';
+    return;
+  }
+  var tbl = document.createElement('table'); tbl.className='map-tbl';
+  tbl.innerHTML = '<thead><tr><th>이름</th><th class="arr"></th><th>직급 (잠금)</th><th></th></tr></thead>';
+  var tbody = document.createElement('tbody');
+  arr.slice().sort(function(a,b){ return a.name.localeCompare(b.name, 'ko'); }).forEach(function(r, i){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="ex">' + esc(r.name) + '</td>'
+      + '<td class="arr">→</td>'
+      + '<td class="kk">' + esc(r.title) + '</td>'
+      + '<td class="act"><button class="tbl-del" onclick="deleteRoster(' + i + ')" title="삭제">🗑</button></td>';
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+  list.appendChild(tbl);
+}
+
+function deleteRoster(idx){
+  var sorted = loadRoster().slice().sort(function(a,b){ return a.name.localeCompare(b.name, 'ko'); });
+  var target = sorted[idx];
+  if(!target) return;
+  var roster = loadRoster().filter(function(r){ return r.name !== target.name; });
+  saveRoster(roster);
+  renderRoster();
+  updateConnectionUI();
+  if(!document.getElementById('result').classList.contains('hidden')) buildFinalResult();
+}
+
+function clearRosterConfirm(){
+  if(!loadRoster().length){ showToast('명부가 비어있습니다'); return; }
+  if(confirm('명부 전체를 삭제하시겠습니까? 잠긴 직급도 모두 사라집니다.')){
+    saveRoster([]);
+    renderRoster();
+    updateConnectionUI();
+    if(!document.getElementById('result').classList.contains('hidden')) buildFinalResult();
+  }
+}
+
+// ═══ FIXED MEMBERS ═══════════════════════════════════════════════
+function renderFixedList(){
+  var list=document.getElementById('fixed-list'); list.innerHTML='';
+  var arr=loadFixed();
+  if(!arr.length){list.innerHTML='<div class="empty"><div class="empty-i">👤</div>고정 멤버가 없습니다</div>';return;}
+  arr.forEach(function(m,i){
+    var row=document.createElement('div'); row.className='m-edit-row';
+    row.innerHTML='<div class="ns"><div class="n1">'+esc(m.kakaoName)+'</div>'+(m.note?'<div class="n2">'+esc(m.note)+'</div>':'')+'</div>'
+      +'<button class="delbtn" onclick="delFixed('+i+')">🗑</button>';
+    list.appendChild(row);
+  });
+}
+function toggleFixedForm(){
+  var f=document.getElementById('fixed-form'); f.classList.toggle('open');
+  if(f.classList.contains('open')) document.getElementById('ff-kakao').focus();
+}
+function addFixed(){
+  var kn=document.getElementById('ff-kakao').value.trim();
+  var nt=document.getElementById('ff-note').value.trim();
+  if(!kn){showToast('카카오톡 이름을 입력하세요');return;}
+  var a=loadFixed(); a.push({kakaoName:kn,note:nt}); saveFixed(a);
+  document.getElementById('ff-kakao').value=''; document.getElementById('ff-note').value='';
+  toggleFixedForm(); renderFixedList(); showToast(kn+' 추가됨');
+}
+function delFixed(i){
+  var a=loadFixed(); var nm=a[i]&&a[i].kakaoName; a.splice(i,1); saveFixed(a); renderFixedList();
+  if(nm)showToast(nm+' 삭제됨');
+}
+
+// ═══ UTILS ═══════════════════════════════════════════════════════
+function dedup(persons){
+  var seen={},res=[];
+  persons.forEach(function(p){
+    var k=p.name+'|'+p.role;
+    if(!seen[k]){seen[k]=true;res.push(p);}
+  });
+  return res;
+}
+function buildGroupName(date,bldg){
+  var m=date.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+  if(!m) return date+' '+bldg;
+  var dow=['일','월','화','수','목','금','토'];
+  var day=new Date(+m[1],+m[2]-1,+m[3]).getDay();
+  return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2)+'('+dow[day]+') '+bldg;
+}
+function isPureKorean(s){ return /^[가-힣]+$/.test(s); }
+function roleIcon(r){ return {총괄:'👑',소장:'🏢',팀장:'👨‍💼',매니저:'🔧',참관:'👁️'}[r]||''; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+function showToast(msg){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+// ═══ AUTOMATION: 도우미 모드 (클립보드 핸드오프) ═══════════════
+// 도우미 AHK가 화면 오른쪽 아래 시계 옆에서 대기하다가 F9 누르면 클립보드 데이터 읽어 자동화 실행
+
+// 안전/수동 멤버 분리 (downloadAHK과 동일 로직 공유)
+function splitMembersForAutomation(){
+  var fixed = loadFixed();
+  var safeNames = [], manualNames = [];
+  var seen = {};
+  // 고정 인원 먼저 (상위 2명이 단톡방 생성용으로 쓰임)
+  fixed.forEach(function(f){
+    if(!seen[f.kakaoName]){ seen[f.kakaoName]=true; safeNames.push(f.kakaoName); }
+  });
+  resolvedMembers.forEach(function(p){
+    if(seen[p.kakaoName]) return;
+    seen[p.kakaoName] = true;
+    if(p.needsCheck) manualNames.push(p.kakaoName);
+    else safeNames.push(p.kakaoName);
+  });
+  // 초기 단톡방 생성 = 고정멤버 상위 2명만 (= 본인 포함 3명 단톡방)
+  // 그 외 모두 (3번째 고정멤버부터 + 비고정) = Ctrl+I로 1명씩 초대
+  var INITIAL_COUNT = 2;
+  var fixedKakaoNames = fixed.map(function(f){return f.kakaoName;});
+  // initial = 고정멤버 중 상위 2명만
+  var initialNames = fixedKakaoNames.slice(0, INITIAL_COUNT);
+  // additional = 나머지 (고정 3번째 이후 + 비고정)
+  var additionalNames = safeNames.filter(function(n){return initialNames.indexOf(n) === -1;});
+  return {
+    safeNames: safeNames,
+    initialNames: initialNames,
+    additionalNames: additionalNames,
+    manualNames: manualNames
+  };
+}
+
+// 클립보드 페이로드 생성: v3 — 초기/추가/수동 세 섹션
+function buildClipboardPayload(groupName, initialNames, additionalNames, manualNames){
+  var parts = ['[KAKAOBOT_v3]', groupName];
+  initialNames.forEach(function(n){ parts.push(n); });
+  parts.push('---ADDITIONAL---');
+  additionalNames.forEach(function(n){ parts.push(n); });
+  parts.push('---MANUAL---');
+  manualNames.forEach(function(n){ parts.push(n); });
+  return parts.join('\n');
+}
+
+function runViaHelper(){
+  var groupName = document.getElementById('res-name').textContent;
+  var split = splitMembersForAutomation();
+  if(split.initialNames.length < 2){
+    showToast('고정멤버를 최소 2명 등록해야 합니다 (단톡방 생성용)');
+    return;
+  }
+  var payload = buildClipboardPayload(groupName, split.initialNames, split.additionalNames, split.manualNames);
+
+  // 클립보드 복사
+  var ta = document.createElement('textarea');
+  ta.value = payload;
+  ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  var copied = false;
+  try { copied = document.execCommand('copy'); } catch(e){}
+  document.body.removeChild(ta);
+
+  if(!copied){
+    showToast('클립보드 복사 실패 — 대안: AHK 다운로드 사용하세요');
+    return;
+  }
+
+  // 실행 안내 모달
+  var modal = document.getElementById('run-helper-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'run-helper-modal';
+    modal.className = 'overlay';
+    document.body.appendChild(modal);
+  }
+  modal.classList.add('on');
+  var manualHtml = split.manualNames.length > 0
+    ? '<div style="background:#FFF3E0;border-radius:8px;padding:11px 13px;font-size:12px;color:#E65100;margin-bottom:14px;line-height:1.7"><strong>⚠ ' + split.manualNames.length + '명은 자동으로 못 넣어요</strong><br><span style="font-size:11px">' + split.manualNames.map(esc).join(', ') + ' — 명부에 등록 안 된 사람들. 단톡방 만든 다음에 직접 카톡에서 검색해서 추가하세요. (마지막에 다시 안내됨)</span></div>'
+    : '';
+  modal.innerHTML = '<div class="modal" style="max-width:440px">'
+    + '<h3>🚀 자동 실행 준비 완료</h3>'
+    + '<div style="background:#E8F5E9;border-radius:8px;padding:11px 13px;font-size:13px;color:#1B5E20;margin-bottom:14px"><strong>✓ ' + split.safeNames.length + '명을 자동으로 초대할 준비가 됐습니다.</strong></div>'
+    + manualHtml
+    + '<div style="background:var(--lemon);border-radius:9px;padding:16px;margin-bottom:14px;line-height:1.9">'
+    + '<div style="font-weight:800;color:var(--brown);font-size:14px;margin-bottom:10px">📌 이제 이렇게 하세요</div>'
+    + '<div style="font-size:13px"><strong>1.</strong> 화면 오른쪽 아래 <strong>시계 옆</strong>에 <strong style="color:#2D9E5F">초록색 [H] 표시</strong>가 있는지 확인<br><span style="font-size:11px;color:var(--text2);padding-left:18px">→ 없으면 아래 <strong>[도우미 설치]</strong> 먼저 누르세요</span><br>'
+    + '<strong>2.</strong> <strong>카카오톡이 켜져 있는지 확인</strong> (창이 열려 있어야 함)<br>'
+    + '<strong>3.</strong> 키보드의 <strong style="color:#D93025;font-size:14px">F9 키</strong>를 누르세요</div>'
+    + '<div style="margin-top:12px;padding:9px 11px;background:#E8F5E9;border-radius:7px;font-size:12px;color:#1B5E20;line-height:1.7"><strong>✓ F9 한 번 = 자동으로</strong> 새 채팅창 열기 → 멤버 추가 → 단톡방 생성까지 끝.</div>'
+    + '</div>'
+    + '<div style="background:#FFF3E0;border-radius:8px;padding:11px 13px;font-size:11px;color:#E65100;margin-bottom:14px;line-height:1.7"><strong>⚠ F9 눌렀는데 새 채팅창 자동으로 안 열리면</strong>: 도우미가 옛날 버전일 수 있어요. <strong>화면 오른쪽 아래 시계 옆 [H] 아이콘 우클릭 → Exit</strong>로 끈 다음, 아래 <strong>[도우미 설치]</strong>에서 새 버전 받아서 다시 실행해주세요.</div>'
+    + '<div class="modal-btns"><button class="fbtn sec" onclick="closeRunModal()">닫기</button>'
+    + '<button class="fbtn pri" onclick="closeRunModal();showHelperSetup()">도우미 설치</button></div>'
+    + '</div>';
+}
+
+function closeRunModal(){
+  var m = document.getElementById('run-helper-modal');
+  if(m) m.classList.remove('on');
+}
+
+// 도우미 AHK 다운로드 (한 번만)
+function downloadHelperAHK(){
+  var lines = [];
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 카카오톡 단톡방 도우미  [버전 v4.8 — 진행 신호 추가]');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push(';');
+  lines.push('; [무엇을 하는 프로그램인가]');
+  lines.push(';   일정 생성기 페이지에서 [🚀 자동 실행] 버튼을 누르면,');
+  lines.push(';   초대할 사람 명단이 이 프로그램으로 전달됩니다.');
+  lines.push(';   F9를 누르면 자동으로 카톡 새 채팅창을 열고,');
+  lines.push(';   사람들을 한 명씩 검색해 단톡방에 추가해줍니다.');
+  lines.push(';');
+  lines.push('; [처음 설치]');
+  lines.push(';   1. AutoHotkey v2 설치 (https://www.autohotkey.com/)');
+  lines.push(';   2. 이 파일을 더블클릭으로 실행');
+  lines.push(';   3. 화면 오른쪽 아래 시계 옆에 초록색 [H] 표시 확인');
+  lines.push(';');
+  lines.push('; [PC 켤 때 자동 실행 (권장)]');
+  lines.push(';   1. 윈도우키+R → shell:startup 입력 후 엔터');
+  lines.push(';   2. 열린 폴더에 이 파일을 복사해서 넣어두기');
+  lines.push(';');
+  lines.push('; [단축키]');
+  lines.push(';   F9       : 자동 초대 실행 (카카오톡이 켜져 있기만 하면 됨)');
+  lines.push(';   Ctrl+F12 : 도우미 끄기');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('#Requires AutoHotkey v2.0');
+  lines.push('#SingleInstance Force');
+  lines.push('');
+  lines.push('; ★ 중요: Click과 WinGetPos가 같은 좌표계 사용하도록 명시');
+  lines.push('CoordMode "Mouse", "Screen"');
+  lines.push('');
+  lines.push('HELPER_VERSION := "v4.8 (진행 신호 추가 — HTML 페이지에서 자동 체크 가능 / 2026-05-14)"');
+  lines.push('');
+  lines.push('DELAY_AFTER_PASTE := 400');
+  lines.push('DELAY_AFTER_KEY := 100');
+  lines.push('DELAY_CONFIRM_TO_NAME := 1000');
+  lines.push('DELAY_AFTER_ROOM_CREATE := 2500   ; 단톡방 생성 후 채팅창 열리는 데 걸리는 시간');
+  lines.push('DELAY_AFTER_INVITE := 1500        ; Ctrl+I 후 초대창 뜨는 시간');
+  lines.push('DELAY_AFTER_CONFIRM := 1200       ; 확인 누른 뒤 창 닫힘 시간');
+  lines.push('');
+  lines.push('; 클립보드 데이터 파싱 (v3: initial / additional / manual 세 섹션)');
+  lines.push('ParseClipboard() {');
+  lines.push('    raw := A_Clipboard');
+  lines.push('    lines := StrSplit(raw, "`n", "`r")');
+  lines.push('    if (lines.Length < 2 || Trim(lines[1]) != "[KAKAOBOT_v3]")');
+  lines.push('        return ""');
+  lines.push('    data := Map()');
+  lines.push('    data["groupName"] := Trim(lines[2])');
+  lines.push('    data["initialNames"] := []');
+  lines.push('    data["additionalNames"] := []');
+  lines.push('    data["manualNames"] := []');
+  lines.push('    section := "initial"');
+  lines.push('    Loop lines.Length - 2 {');
+  lines.push('        i := A_Index + 2');
+  lines.push('        line := Trim(lines[i])');
+  lines.push('        if (line = "")');
+  lines.push('            continue');
+  lines.push('        if (line = "---ADDITIONAL---") {');
+  lines.push('            section := "additional"');
+  lines.push('            continue');
+  lines.push('        }');
+  lines.push('        if (line = "---MANUAL---") {');
+  lines.push('            section := "manual"');
+  lines.push('            continue');
+  lines.push('        }');
+  lines.push('        if (section = "initial")');
+  lines.push('            data["initialNames"].Push(line)');
+  lines.push('        else if (section = "additional")');
+  lines.push('            data["additionalNames"].Push(line)');
+  lines.push('        else');
+  lines.push('            data["manualNames"].Push(line)');
+  lines.push('    }');
+  lines.push('    return data');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 초기 멤버 추가 — 사용자가 검증한 시퀀스');
+  lines.push(';   1~N-1번째: 붙여넣기 → Tab×2+Down+Space → Tab×4+Enter (X로 검색 비움)');
+  lines.push(';   N번째 (마지막): 붙여넣기 → Tab×2+Down+Space → Tab×1+Enter (확인)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('AddMember(memberName, isLast) {');
+  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_CONFIRM_TO_NAME');
+  lines.push('    ; ── 검색칸은 자동 포커스 상태 ──');
+  lines.push('    ;   • 첫 멤버: Ctrl+N 직후 자동 포커스');
+  lines.push('    ;   • 둘째 이후: 이전 멤버의 X 버튼이 검색을 비우고 포커스 복귀시킴');
+  lines.push('    ; 1. 이름 붙여넣기');
+  lines.push('    A_Clipboard := memberName');
+  lines.push('    Sleep(200)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)  ; 검색 필터링 대기');
+  lines.push('    ; 2. 검색 결과 첫 항목 체크');
+  lines.push('    Send("{Tab 2}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Down}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Space}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
+  lines.push('    ; 3. 다음 단계 분기');
+  lines.push('    if (isLast) {');
+  lines.push('        ; 마지막 멤버: Tab×1+Enter → 확인 버튼 → 이름 입력 화면');
+  lines.push('        Send("{Tab}")');
+  lines.push('        Sleep(DELAY_AFTER_KEY)');
+  lines.push('        Send("{Enter}")');
+  lines.push('        Sleep(DELAY_CONFIRM_TO_NAME)');
+  lines.push('    } else {');
+  lines.push('        ; 중간 멤버: Tab×4+Enter → X 버튼 → 검색 비움 + 포커스 복귀');
+  lines.push('        Send("{Tab 4}")');
+  lines.push('        Sleep(DELAY_AFTER_KEY)');
+  lines.push('        Send("{Enter}")');
+  lines.push('        Sleep(400)  ; X 클리어 + 검색 포커스 복귀 대기');
+  lines.push('    }');
+  lines.push('    return true');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; (검사 없음 — 사용자 스펙대로 무조건 12단계 그대로 진행)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; Ctrl+I로 단톡방에 1명씩 초대 — 단순 반복');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('InviteOneViaCtrlI(memberName) {');
+  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_AFTER_INVITE, DELAY_AFTER_CONFIRM');
+  lines.push('    ; Ctrl+I로 대화상대 초대 창 열기 (카톡 표준 단축키)');
+  lines.push('    ; 현재 채팅창의 hwnd를 기록해 새 창이 떴는지 확인');
+  lines.push('    chatWinsBefore := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    beforeMap := Map()');
+  lines.push('    for h in chatWinsBefore');
+  lines.push('        beforeMap[h] := true');
+  lines.push('    SendInput("^i")');
+  lines.push('    Sleep(DELAY_AFTER_INVITE)');
+  lines.push('    ; 새로 생긴 초대창 찾기');
+  lines.push('    inviteHwnd := 0');
+  lines.push('    for h in WinGetList("ahk_exe KakaoTalk.exe") {');
+  lines.push('        if !beforeMap.Has(h) {');
+  lines.push('            inviteHwnd := h');
+  lines.push('            break');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (inviteHwnd = 0) {');
+  lines.push('        ; 한 번 더 시도');
+  lines.push('        Sleep(700)');
+  lines.push('        SendInput("^i")');
+  lines.push('        Sleep(DELAY_AFTER_INVITE)');
+  lines.push('        for h in WinGetList("ahk_exe KakaoTalk.exe") {');
+  lines.push('            if !beforeMap.Has(h) {');
+  lines.push('                inviteHwnd := h');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (inviteHwnd = 0)');
+  lines.push('        return false  ; 초대창 못 열음');
+  lines.push('    WinActivate("ahk_id " . inviteHwnd)');
+  lines.push('    Sleep(500)  ; 다이얼로그 활성화 + 검색칸 자동 포커스 대기');
+  lines.push('    ; ── 검색창은 새 다이얼로그라 자동 포커스 + 비어있음 (클릭 불필요) ──');
+  lines.push('    ; 이름 붙여넣기');
+  lines.push('    A_Clipboard := memberName');
+  lines.push('    Sleep(200)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)  ; 검색 필터링 대기');
+  lines.push('    ; 키보드로 첫 결과 선택');
+  lines.push('    Send("{Tab 2}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Down}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Space}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
+  lines.push('    ; 확인 버튼 (Tab×1+Enter — 검증된 시퀀스)');
+  lines.push('    Send("{Tab}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Enter}")');
+  lines.push('    Sleep(DELAY_AFTER_CONFIRM)');
+  lines.push('    return true');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 단톡방 이름 입력 — AddMember(isLast=true) 이후 이름 입력 화면에서 호출');
+  lines.push(';   페이스트 → Tab×1 → Enter (확인)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('SetGroupName(groupName) {');
+  lines.push('    ; 이름 입력 필드는 자동 포커스 상태');
+  lines.push('    A_Clipboard := groupName');
+  lines.push('    Sleep(300)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(500)  ; 페이스트 반영 대기 (긴 이름도 안전하게)');
+  lines.push('    Send("{Tab}")');
+  lines.push('    Sleep(300)  ; Tab 처리 보장');
+  lines.push('    Send("{Enter}")');
+  lines.push('    Sleep(1500) ; 단톡방 생성 + 채팅창 뜨는 시간');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 최종 완료 안내 — 수동 멤버 명단 + 환영 메시지 클립보드 복사');
+  lines.push(';   환영 메시지는 클립보드에 복사된 상태로 종료 (자동 전송 X)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('ShowFinalSummary(groupName, manualNames) {');
+  lines.push('    welcomeMsg := "안녕하세요, " . groupName . " 단톡방입니다."');
+  lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
+  lines.push('    if (manualNames.Length > 0) {');
+  lines.push('        namesList := ""');
+  lines.push('        for n in manualNames');
+  lines.push('            namesList .= "  • " . n . "`n"');
+  lines.push('        msg .= "`n[수동으로 추가할 분 " . manualNames.Length . "명]`n" . namesList');
+  lines.push('        msg .= "`n👉 단톡방 메뉴(≡) → 대화상대 초대로 직접 추가하세요.`n"');
+  lines.push('    }');
+  lines.push('    msg .= "`n━━━━━━━━━━━━━━━━━━━━`n"');
+  lines.push('    msg .= "[환영 메시지 클립보드 복사 완료]`n"');
+  lines.push('    msg .= welcomeMsg . "`n"');
+  lines.push('    msg .= "`n👉 단톡방 채팅창 클릭 → Ctrl+V → Enter로 전송하시면 됩니다."');
+  lines.push('    A_Clipboard := welcomeMsg  ; ★ 환영 메시지를 클립보드에 복사');
+  lines.push('    MsgBox(msg, "완료", 64)');
+  lines.push('}');
+  lines.push('');
+  lines.push('F9:: {');
+  lines.push('    data := ParseClipboard()');
+  lines.push('    if (data = "") {');
+  lines.push('        MsgBox("아직 준비된 데이터가 없어요.`n`n일정 생성기 페이지에서 [🚀 자동 실행] 버튼을`n먼저 눌러주세요.", "안내", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    initialNames := data["initialNames"]');
+  lines.push('    additionalNames := data["additionalNames"]');
+  lines.push('    manualNames := data["manualNames"]');
+  lines.push('    groupName := data["groupName"]');
+  lines.push('    totalCount := initialNames.Length + additionalNames.Length');
+  lines.push('    if (initialNames.Length < 2) {');
+  lines.push('        MsgBox("초대할 사람이 부족합니다 (최소 2명 필요).", "오류", 16)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    if !WinExist("ahk_exe KakaoTalk.exe") {');
+  lines.push('        MsgBox("카카오톡이 켜져 있지 않아요.`n카카오톡을 먼저 켜고 다시 F9를 눌러주세요.", "카카오톡 안 켜져 있음", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    result := MsgBox("도우미 " . HELPER_VERSION . "`n`n총 " . totalCount . "명 초대 (단톡방 + 추가).`n  • 처음 " . initialNames.Length . "명: 단톡방 생성으로 초대`n  • 나머지 " . additionalNames.Length . "명: Ctrl+I로 1명씩 추가" . (manualNames.Length > 0 ? "`n  • " . manualNames.Length . "명: 명부에 없어 자동 제외 (끝나면 안내)" : "") . "`n`n[확인]을 누르면 3초 후 자동으로:`n  1. 카카오톡 새 채팅창 열기 (Ctrl+N)`n  2. 처음 " . initialNames.Length . "명 초대 + 단톡방 이름 설정`n  3. 나머지 " . additionalNames.Length . "명 Ctrl+I로 한 명씩 추가`n  4. 환영 메시지를 클립보드에 복사 (자동 전송 X)`n`n도중에 멈추려면 Ctrl+F12.", "자동 초대 시작", 0x21)');
+  lines.push('    if (result != "OK")');
+  lines.push('        return');
+  lines.push('    Loop 3 {');
+  lines.push('        ToolTip((4 - A_Index) . "초 후 시작...")');
+  lines.push('        Sleep(1000)');
+  lines.push('    }');
+  lines.push('    ; ── 1단계: 카카오톡 메인 창 찾기 ──');
+  lines.push('    ToolTip("[1/3] 카카오톡 메인 창 찾는 중...")');
+  lines.push('    mainHwnd := 0');
+  lines.push('    mainTitle := ""');
+  lines.push('    diagInfo := ""');
+  lines.push('    kakaoWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    beforeMap := Map()');
+  lines.push('    for hwnd in kakaoWins {');
+  lines.push('        beforeMap[hwnd] := true');
+  lines.push('        t := WinGetTitle("ahk_id " . hwnd)');
+  lines.push('        diagInfo .= "  • " . hwnd . " 제목=`"" . t . "`"`n"');
+  lines.push('        if (mainHwnd = 0 and InStr(t, "카카오톡")) {');
+  lines.push('            mainHwnd := hwnd');
+  lines.push('            mainTitle := t');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (mainHwnd = 0) {');
+  lines.push('        for hwnd in kakaoWins {');
+  lines.push('            t := WinGetTitle("ahk_id " . hwnd)');
+  lines.push('            if (t != "") {');
+  lines.push('                mainHwnd := hwnd');
+  lines.push('                mainTitle := t');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (mainHwnd = 0 and kakaoWins.Length > 0) {');
+  lines.push('        mainHwnd := kakaoWins[1]');
+  lines.push('        mainTitle := "(제목 없음)"');
+  lines.push('    }');
+  lines.push('    if (mainHwnd = 0) {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("카카오톡 창을 찾을 수 없습니다.`n카카오톡을 켠 뒤 다시 F9를 눌러주세요.", "오류", 16)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    ToolTip("[1/3] 활성화: " . mainTitle . "`n총 카카오톡 창 " . kakaoWins.Length . "개")');
+  lines.push('    WinActivate("ahk_id " . mainHwnd)');
+  lines.push('    WinWaitActive("ahk_id " . mainHwnd, , 3)');
+  lines.push('    Sleep(500)');
+  lines.push('    if !WinActive("ahk_id " . mainHwnd) {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("[1단계 실패] 카카오톡 메인 창을 활성화할 수 없습니다.`n`n발견한 카카오톡 창:`n" . diagInfo . "`n카카오톡 메인 창을 한 번 직접 클릭한 뒤 다시 F9를 눌러주세요.", "활성화 실패", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    ; ── 2단계: Ctrl+N + 새로 생긴 창 감지 ──');
+  lines.push('    ToolTip("[2/3] Ctrl+N으로 새 채팅창 여는 중...`n메인: " . mainTitle)');
+  lines.push('    Sleep(300)');
+  lines.push('    SendInput("^n")');
+  lines.push('    Sleep(1500)');
+  lines.push('    ; 새로 생긴 카카오톡 창(=대화상대 선택) 찾기 — 제목 무관, hwnd 비교');
+  lines.push('    dialogHwnd := 0');
+  lines.push('    afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    for h in afterWins {');
+  lines.push('        if !beforeMap.Has(h) {');
+  lines.push('            dialogHwnd := h');
+  lines.push('            break');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    ; 못 찾으면 한 번 더 시도');
+  lines.push('    if (dialogHwnd = 0) {');
+  lines.push('        Sleep(700)');
+  lines.push('        SendInput("^n")');
+  lines.push('        Sleep(1500)');
+  lines.push('        afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('        for h in afterWins {');
+  lines.push('            if !beforeMap.Has(h) {');
+  lines.push('                dialogHwnd := h');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (dialogHwnd = 0) {');
+  lines.push('        ToolTip()');
+  lines.push('        afterDiag := ""');
+  lines.push('        for h in afterWins {');
+  lines.push('            afterDiag .= "  • " . h . " 제목=`"" . WinGetTitle("ahk_id " . h) . "`"`n"');
+  lines.push('        }');
+  lines.push('        MsgBox("[2단계 실패] Ctrl+N 후 새 창이 안 생겼어요.`n`n[Ctrl+N 전]`n" . diagInfo . "`n[Ctrl+N 후]`n" . afterDiag . "`n해결 방법:`n  ① 한/영 키를 영문 모드로 (한 번 눌러 영문 전환)`n  ② 직접 Ctrl+N으로 새 채팅창을 연 뒤 F9 재실행", "새 창 안 뜸", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    ; 새 창 활성화 시도 (transient는 무시하고 활성 창 사용)');
+  lines.push('    if WinExist("ahk_id " . dialogHwnd) {');
+  lines.push('        WinActivate("ahk_id " . dialogHwnd)');
+  lines.push('        Sleep(500)');
+  lines.push('    }');
+  lines.push('    ; ── 3단계: 멤버 추가 ── (활성 창 기반)');
+  lines.push('    activeHwnd := WinGetID("A")');
+  lines.push('    activeTitle := WinGetTitle("A")');
+  lines.push('    activeExe := WinGetProcessName("A")');
+  lines.push('    if (activeExe != "KakaoTalk.exe") {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("[3단계 실패] 카카오톡 창이 활성화 안 됨.`n현재 활성: " . activeTitle . " (" . activeExe . ")`n`n카카오톡 메인 창을 한 번 직접 클릭한 뒤 다시 F9.", "활성화 실패", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    ToolTip("[3/3] 새 채팅창 활성화됨. 처음 " . initialNames.Length . "명 초대 시작...")');
+  lines.push('    Sleep(300)');
+  lines.push('    ; ── 초기 멤버 추가 (단톡방 생성용 = 고정 상위 2명) ──');
+  lines.push('    Loop initialNames.Length {');
+  lines.push('        currentName := initialNames[A_Index]');
+  lines.push('        isLast := (A_Index = initialNames.Length)');
+  lines.push('        ToolTip("[초기 " . A_Index . "/" . initialNames.Length . "] " . currentName . " 추가 중" . (isLast ? " (마지막)" : ""))');
+  lines.push('        if !AddMember(currentName, isLast) {');
+  lines.push('            ToolTip()');
+  lines.push('            MsgBox("초기 멤버 " . A_Index . "번째 (" . currentName . ") 추가 중 활성 창이 사라졌어요.`n`n자동화 중단.", "중단", 16)');
+  lines.push('            return');
+  lines.push('        }');
+  lines.push('        ; ── 진행 신호 (HTML 페이지가 폴링하면 자동 체크) ──');
+  lines.push('        A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
+  lines.push('        Sleep(150)');
+  lines.push('    }');
+  lines.push('    ; ── 8단계: SetGroupName (사용자 스펙 8번) — 무조건 실행 ──');
+  lines.push('    ToolTip("단톡방 이름 입력 (1차)...")');
+  lines.push('    Sleep(200)');
+  lines.push('    SetGroupName(groupName)');
+  lines.push('    ; ── 9단계: SetGroupName 한 번 더 (사용자 스펙 9번) — 무조건 실행 ──');
+  lines.push('    ; 8번 실패(중복 안내, 정보 설정 창) 가정. 정상이면 9번은 채팅창에서 동작.');
+  lines.push('    ; 중간 검사 없음 — 사용자가 무조건 그대로 진행 지시.');
+  lines.push('    ToolTip("단톡방 이름 입력 (2차)...")');
+  lines.push('    Sleep(500)');
+  lines.push('    SetGroupName(groupName)');
+  lines.push('    ; ── 단톡방 채팅창 안정화 대기 ──');
+  lines.push('    ToolTip("단톡방 채팅창 안정화 대기...")');
+  lines.push('    Sleep(DELAY_AFTER_ROOM_CREATE)');
+  lines.push('    ; ── 10단계: 나머지 멤버 Ctrl+I로 1명씩 추가 (환영 메시지 보내기 전!) ──');
+  lines.push('    if (additionalNames.Length > 0) {');
+  lines.push('        Loop additionalNames.Length {');
+  lines.push('            currentName := additionalNames[A_Index]');
+  lines.push('            ToolTip("[추가 " . A_Index . "/" . additionalNames.Length . "] " . currentName . " 초대 중 (Ctrl+I)")');
+  lines.push('            if !InviteOneViaCtrlI(currentName) {');
+  lines.push('                ToolTip()');
+  lines.push('                MsgBox("추가 멤버 " . currentName . " 초대 실패 (Ctrl+I 후 창 못 찾음).`n`n나머지는 직접 추가해주세요.", "일부 실패", 48)');
+  lines.push('                Break');
+  lines.push('            }');
+  lines.push('            ; ── 진행 신호 (HTML 페이지가 폴링하면 자동 체크) ──');
+  lines.push('            A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
+  lines.push('            Sleep(150)');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    ; ── 안전망: 모든 멤버 명단을 한 번에 보냄 (자동 체크 보장) ──');
+  lines.push('    ; 중간 진행 신호를 HTML이 놓쳤어도 여기서 한 번에 동기화됨.');
+  lines.push('    ToolTip("진행 상황 동기화 중...")');
+  lines.push('    doneClip := "[KAKAOBOT_DONE]`n" . groupName');
+  lines.push('    for n in initialNames');
+  lines.push('        doneClip .= "`n" . n');
+  lines.push('    for n in additionalNames');
+  lines.push('        doneClip .= "`n" . n');
+  lines.push('    A_Clipboard := doneClip');
+  lines.push('    Sleep(700)  ; HTML 폴링이 잡을 시간 확보');
+  lines.push('    ; ── 11+12단계: 수동 멤버 안내 + 환영 메시지 클립보드 복사 ──');
+  lines.push('    ToolTip()');
+  lines.push('    Sleep(500)');
+  lines.push('    ShowFinalSummary(groupName, manualNames)');
+  lines.push('}');
+  lines.push('');
+  lines.push('^F12:: {');
+  lines.push('    ExitApp()');
+  lines.push('}');
+  lines.push('');
+  lines.push('TrayTip("카카오톡 도우미 켜졌습니다", "버전: " . HELPER_VERSION . "`n`n쓰지 않을 때 끄려면: 시계 옆 H 아이콘 우클릭 → Exit", 1)');
+  lines.push('');
+
+  var content = '\uFEFF' + lines.join('\r\n');
+  var blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = '카카오톡_도우미.ahk';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('도우미 AHK 다운로드됨');
+}
+
+function showHelperSetup(){
+  var modal = document.getElementById('helper-setup-modal');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'helper-setup-modal';
+    modal.className = 'overlay';
+    document.body.appendChild(modal);
+  }
+  modal.classList.add('on');
+  modal.innerHTML = '<div class="modal" style="max-width:480px">'
+    + '<h3>⚙ 처음 한 번만 설치</h3>'
+    + '<p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.7">한 번 설치해두면 이 PC에서는 앞으로 <strong>[🚀 자동 실행]</strong> 버튼만 누르면 됩니다. 매번 파일 받을 필요 없어요.</p>'
+    + '<div style="background:var(--lemon);border-radius:9px;padding:16px;margin-bottom:14px;line-height:1.9;font-size:13px">'
+    + '<div style="font-weight:800;color:var(--brown);margin-bottom:10px">📋 설치 순서</div>'
+    + '<strong>1.</strong> <a href="https://www.autohotkey.com" target="_blank" style="color:#2D5BA1;font-weight:700">AutoHotkey v2 프로그램</a> 먼저 설치<br><span style="font-size:11px;color:var(--text2);padding-left:18px">(이미 깔려있으면 건너뛰기)</span><br>'
+    + '<strong>2.</strong> 아래 <strong>[📥 도우미 파일 받기]</strong> 누르기<br>'
+    + '<strong>3.</strong> 받아진 <code>카카오톡_도우미.ahk</code> 파일을 <strong>더블클릭</strong><br>'
+    + '<strong>4.</strong> 화면 오른쪽 아래 시계 옆에 <strong style="color:#2D9E5F">초록색 [H]</strong> 표시가 나타나면 성공</div>'
+    + '<div style="background:#E3F2FD;border-radius:9px;padding:14px;font-size:12px;color:#0D47A1;margin-bottom:14px;line-height:1.8">'
+    + '<div style="font-weight:700;margin-bottom:8px">💡 (권장) PC 켤 때 자동으로 실행되게 하기</div>'
+    + '<strong>①</strong> 키보드 <strong>[윈도우키 ⊞] + [R]</strong> 동시에 누르기<br>'
+    + '<strong>②</strong> 뜨는 작은 창에 <code>shell:startup</code> 입력하고 엔터<br>'
+    + '<strong>③</strong> 열린 폴더에 받아둔 <code>카카오톡_도우미.ahk</code> 파일을 복사해서 붙여넣기<br>'
+    + '<span style="font-size:11px;color:#1565C0;display:block;margin-top:6px">이렇게 해두면 PC를 끄고 다시 켜도 도우미가 자동으로 켜져 있어요.</span>'
+    + '</div>'
+    + '<div class="modal-btns"><button class="fbtn sec" onclick="closeHelperSetup()">닫기</button>'
+    + '<button class="fbtn pri" onclick="downloadHelperAHK()">📥 도우미 파일 받기</button></div>'
+    + '</div>';
+}
+
+function closeHelperSetup(){
+  var m = document.getElementById('helper-setup-modal');
+  if(m) m.classList.remove('on');
+}
+
+// ═══ AUTOMATION: AutoHotkey 스크립트 다운로드 (기존 — 1회용) ════
+function downloadAHK(){
+  var fixed = loadFixed();
+  var groupName = document.getElementById('res-name').textContent;
+
+  // 안전한 멤버 (자동화 가능) vs 수동 추가 필요한 멤버 분리
+  // 안전: 고정멤버 + 명부에서 자동 검색 + 영문 접미사 있어 검색 안정적인 사람
+  // 수동: 명부에 없고 순수 한글이라 검색 결과가 동명이인일 위험이 있는 사람 (⚠️)
+  var safeNames = [];
+  var manualNames = [];
+  var seen = {};
+  fixed.forEach(function(f){
+    if(!seen[f.kakaoName]){ seen[f.kakaoName]=true; safeNames.push(f.kakaoName); }
+  });
+  resolvedMembers.forEach(function(p){
+    if(seen[p.kakaoName]) return;
+    seen[p.kakaoName] = true;
+    if(p.needsCheck){
+      manualNames.push(p.kakaoName);
+    } else {
+      safeNames.push(p.kakaoName);
+    }
+  });
+
+  if(safeNames.length === 0){
+    showToast('자동화 가능한 멤버가 없습니다');
+    return;
+  }
+
+  // Escape for AHK v2 string literal: ` first, then "
+  function ahkEsc(s){
+    return String(s).replace(/`/g, '``').replace(/"/g, '`"');
+  }
+
+  // 데이터 분리: initial (고정 상위 2명) / additional (나머지) / manual
+  var INITIAL_COUNT = 2;
+  var fixedKakaoNames = fixed.map(function(f){return f.kakaoName;});
+  var initialNames = fixedKakaoNames.slice(0, INITIAL_COUNT);
+  var additionalNames = safeNames.filter(function(n){return initialNames.indexOf(n) === -1;});
+
+  if(initialNames.length < 2){
+    showToast('고정멤버를 최소 2명 등록해야 합니다 (단톡방 생성용)');
+    return;
+  }
+
+  // Build the AHK v2 script
+  var lines = [];
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 카카오톡 단톡방 완전 자동 생성 스크립트 (AutoHotkey v2)');
+  lines.push('; 단톡방 이름: ' + groupName);
+  lines.push('; 초기 2명 (고정 상위) + Ctrl+I로 추가 ' + additionalNames.length + '명');
+  if(manualNames.length > 0){
+    lines.push('; 수동 추가 필요: ' + manualNames.length + '명 (명부 없음 — 정확도 위해 자동 제외)');
+  }
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; [필요한 프로그램]');
+  lines.push(';   AutoHotkey v2.0 (https://www.autohotkey.com/ 에서 다운로드 후 설치)');
+  lines.push(';');
+  lines.push('; [사용 방법]');
+  lines.push(';   1. 이 파일을 더블클릭해서 실행');
+  lines.push(';   2. 카카오톡이 켜져 있는 상태에서');
+  lines.push(';   3. F9 키를 누르면 자동으로 새 채팅창 열고 끝까지 진행');
+  lines.push(';');
+  lines.push('; [단축키]');
+  lines.push(';   F9       : 전체 자동 (초기 2명 + 단톡방 생성 + Ctrl+I로 추가 + 환영 메시지 클립보드)');
+  lines.push(';   Ctrl+F12 : 중간에 멈추기');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('#Requires AutoHotkey v2.0');
+  lines.push('#SingleInstance Force');
+  lines.push('');
+  lines.push('; ★ 중요: Click과 WinGetPos가 같은 좌표계 사용하도록 명시');
+  lines.push('CoordMode "Mouse", "Screen"');
+  lines.push('');
+  lines.push('; ── 데이터 ──');
+  lines.push('initialNames := []');
+  initialNames.forEach(function(n){
+    lines.push('initialNames.Push("' + ahkEsc(n) + '")');
+  });
+  lines.push('');
+  lines.push('additionalNames := []');
+  additionalNames.forEach(function(n){
+    lines.push('additionalNames.Push("' + ahkEsc(n) + '")');
+  });
+  lines.push('');
+  lines.push('manualNames := []');
+  manualNames.forEach(function(n){
+    lines.push('manualNames.Push("' + ahkEsc(n) + '")');
+  });
+  lines.push('');
+  lines.push('groupName := "' + ahkEsc(groupName) + '"');
+  lines.push('');
+  lines.push('; ── 타이밍 (느리면 늘리기) ──');
+  lines.push('DELAY_AFTER_PASTE := 400');
+  lines.push('DELAY_AFTER_KEY := 100');
+  lines.push('DELAY_CONFIRM_TO_NAME := 1000');
+  lines.push('DELAY_AFTER_ROOM_CREATE := 2500');
+  lines.push('DELAY_AFTER_INVITE := 1500');
+  lines.push('DELAY_AFTER_CONFIRM := 1200');
+  lines.push('');
+  lines.push('; 시작 안내');
+  var manualNoticeForStart = manualNames.length > 0
+    ? '`n`n⚠ ' + manualNames.length + '명은 명부에 없어서 자동으로 못 넣어요.`n   끝나면 그 명단을 알려드릴 테니 직접 추가하시면 됩니다.'
+    : '';
+  lines.push('MsgBox("준비됐어요!`n`n카카오톡이 켜져 있는 상태에서 F9 누르면 자동으로 진행됩니다:`n  • 초기 " . initialNames.Length . "명으로 단톡방 생성 + 이름 설정`n  • 나머지 " . additionalNames.Length . "명 Ctrl+I로 1명씩 초대`n  • 환영 메시지는 클립보드에 복사 (자동 전송 X — 직접 Ctrl+V로 붙여넣기)' + manualNoticeForStart + '", "준비 완료", 64)');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 초기 멤버 추가 — 사용자 검증 시퀀스');
+  lines.push(';   1~N-1번째: Tab×2+Down+Space+Tab×4+Enter (X로 검색 비움)');
+  lines.push(';   N번째 (마지막): Tab×2+Down+Space+Tab×1+Enter (확인)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('AddMember(memberName, isLast) {');
+  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_CONFIRM_TO_NAME');
+  lines.push('    ; 검색칸은 자동 포커스 상태 (Ctrl+N 직후 또는 X 클리어 후)');
+  lines.push('    A_Clipboard := memberName');
+  lines.push('    Sleep(200)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)');
+  lines.push('    Send("{Tab 2}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Down}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Space}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
+  lines.push('    if (isLast) {');
+  lines.push('        Send("{Tab}")           ; Tab×1 → 확인 버튼');
+  lines.push('        Sleep(DELAY_AFTER_KEY)');
+  lines.push('        Send("{Enter}")');
+  lines.push('        Sleep(DELAY_CONFIRM_TO_NAME)');
+  lines.push('    } else {');
+  lines.push('        Send("{Tab 4}")         ; Tab×4 → X 클리어 버튼');
+  lines.push('        Sleep(DELAY_AFTER_KEY)');
+  lines.push('        Send("{Enter}")');
+  lines.push('        Sleep(400)');
+  lines.push('    }');
+  lines.push('    return true');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 단톡방 이름 입력 + 확인');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('SetGroupName(groupName) {');
+  lines.push('    A_Clipboard := groupName');
+  lines.push('    Sleep(300)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(500)  ; 페이스트 반영 대기');
+  lines.push('    Send("{Tab}")');
+  lines.push('    Sleep(300)');
+  lines.push('    Send("{Enter}")');
+  lines.push('    Sleep(1500) ; 단톡방 생성 + 채팅창 뜨는 시간');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; (검사 없음 — 사용자 스펙대로 무조건 12단계 그대로 진행)');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; Ctrl+I로 단톡방에 1명씩 초대');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('InviteOneViaCtrlI(memberName) {');
+  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_AFTER_INVITE, DELAY_AFTER_CONFIRM');
+  lines.push('    chatWinsBefore := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    beforeMap := Map()');
+  lines.push('    for h in chatWinsBefore');
+  lines.push('        beforeMap[h] := true');
+  lines.push('    SendInput("^i")');
+  lines.push('    Sleep(DELAY_AFTER_INVITE)');
+  lines.push('    inviteHwnd := 0');
+  lines.push('    for h in WinGetList("ahk_exe KakaoTalk.exe") {');
+  lines.push('        if !beforeMap.Has(h) {');
+  lines.push('            inviteHwnd := h');
+  lines.push('            break');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (inviteHwnd = 0) {');
+  lines.push('        Sleep(700)');
+  lines.push('        SendInput("^i")');
+  lines.push('        Sleep(DELAY_AFTER_INVITE)');
+  lines.push('        for h in WinGetList("ahk_exe KakaoTalk.exe") {');
+  lines.push('            if !beforeMap.Has(h) {');
+  lines.push('                inviteHwnd := h');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (inviteHwnd = 0)');
+  lines.push('        return false');
+  lines.push('    WinActivate("ahk_id " . inviteHwnd)');
+  lines.push('    Sleep(500)');
+  lines.push('    A_Clipboard := memberName');
+  lines.push('    Sleep(200)');
+  lines.push('    Send("^v")');
+  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)');
+  lines.push('    Send("{Tab 2}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Down}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Space}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
+  lines.push('    Send("{Tab}")');
+  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
+  lines.push('    Send("{Enter}")');
+  lines.push('    Sleep(DELAY_AFTER_CONFIRM)');
+  lines.push('    return true');
+  lines.push('}');
+  lines.push('');
+  lines.push('ShowFinalSummary() {');
+  lines.push('    global manualNames, groupName');
+  lines.push('    welcomeMsg := "안녕하세요, " . groupName . " 단톡방입니다."');
+  lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
+  lines.push('    if (manualNames.Length > 0) {');
+  lines.push('        namesList := ""');
+  lines.push('        for n in manualNames');
+  lines.push('            namesList .= "  • " . n . "`n"');
+  lines.push('        msg .= "`n[수동으로 추가할 분 " . manualNames.Length . "명]`n" . namesList');
+  lines.push('        msg .= "`n👉 단톡방 메뉴(≡) → 대화상대 초대로 직접 추가하세요.`n"');
+  lines.push('    }');
+  lines.push('    msg .= "`n━━━━━━━━━━━━━━━━━━━━`n"');
+  lines.push('    msg .= "[환영 메시지 클립보드 복사 완료]`n"');
+  lines.push('    msg .= welcomeMsg . "`n"');
+  lines.push('    msg .= "`n👉 단톡방 채팅창 클릭 → Ctrl+V → Enter로 전송하시면 됩니다."');
+  lines.push('    A_Clipboard := welcomeMsg');
+  lines.push('    MsgBox(msg, "완료", 64)');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; F9 = 전체 자동');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('F9:: {');
+  lines.push('    global initialNames, additionalNames, manualNames, groupName');
+  lines.push('    if !WinExist("ahk_exe KakaoTalk.exe") {');
+  lines.push('        MsgBox("카카오톡이 켜져 있지 않아요.`n카카오톡을 먼저 켜고 다시 F9를 눌러주세요.", "카카오톡 안 켜져 있음", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    totalCount := initialNames.Length + additionalNames.Length');
+  lines.push('    result := MsgBox("총 " . totalCount . "명 초대.`n  • 초기 " . initialNames.Length . "명: 단톡방 생성 + 이름 설정`n  • 나머지 " . additionalNames.Length . "명: Ctrl+I로 1명씩`n  • 환영 메시지는 클립보드에 복사 (자동 전송 X)`n`n[확인] 누르면 3초 후 자동 진행.`n도중 멈추려면 Ctrl+F12.", "자동 초대 시작", 0x21)');
+  lines.push('    if (result != "OK")');
+  lines.push('        return');
+  lines.push('    Loop 3 {');
+  lines.push('        ToolTip((4 - A_Index) . "초 후 시작...")');
+  lines.push('        Sleep(1000)');
+  lines.push('    }');
+  lines.push('    ; ── 1단계: 카카오톡 메인 창 찾기 ──');
+  lines.push('    mainHwnd := 0');
+  lines.push('    diagInfo := ""');
+  lines.push('    kakaoWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    beforeMap := Map()');
+  lines.push('    for hwnd in kakaoWins {');
+  lines.push('        beforeMap[hwnd] := true');
+  lines.push('        t := WinGetTitle("ahk_id " . hwnd)');
+  lines.push('        diagInfo .= "  • " . hwnd . " 제목=`"" . t . "`"`n"');
+  lines.push('        if (mainHwnd = 0 and InStr(t, "카카오톡"))');
+  lines.push('            mainHwnd := hwnd');
+  lines.push('    }');
+  lines.push('    if (mainHwnd = 0) {');
+  lines.push('        for hwnd in kakaoWins {');
+  lines.push('            if (WinGetTitle("ahk_id " . hwnd) != "") {');
+  lines.push('                mainHwnd := hwnd');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (mainHwnd = 0 and kakaoWins.Length > 0)');
+  lines.push('        mainHwnd := kakaoWins[1]');
+  lines.push('    if (mainHwnd = 0) {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("카카오톡 창을 찾을 수 없습니다.", "오류", 16)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    WinActivate("ahk_id " . mainHwnd)');
+  lines.push('    WinWaitActive("ahk_id " . mainHwnd, , 3)');
+  lines.push('    Sleep(500)');
+  lines.push('    if !WinActive("ahk_id " . mainHwnd) {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("[1단계 실패] 카카오톡 메인 창을 활성화할 수 없습니다.`n발견 창:`n" . diagInfo, "활성화 실패", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    ; ── 2단계: Ctrl+N + 새 hwnd 탐색 ──');
+  lines.push('    ToolTip("[2/3] Ctrl+N으로 새 채팅창 여는 중...")');
+  lines.push('    Sleep(300)');
+  lines.push('    SendInput("^n")');
+  lines.push('    Sleep(1500)');
+  lines.push('    dialogHwnd := 0');
+  lines.push('    afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('    for h in afterWins {');
+  lines.push('        if !beforeMap.Has(h) {');
+  lines.push('            dialogHwnd := h');
+  lines.push('            break');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (dialogHwnd = 0) {');
+  lines.push('        Sleep(700)');
+  lines.push('        SendInput("^n")');
+  lines.push('        Sleep(1500)');
+  lines.push('        afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
+  lines.push('        for h in afterWins {');
+  lines.push('            if !beforeMap.Has(h) {');
+  lines.push('                dialogHwnd := h');
+  lines.push('                break');
+  lines.push('            }');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    if (dialogHwnd = 0) {');
+  lines.push('        ToolTip()');
+  lines.push('        MsgBox("[2단계 실패] Ctrl+N 후 새 채팅창이 안 생겼어요.`n해결: 한/영 키를 영문 모드로 또는 직접 Ctrl+N으로 새 채팅창 연 뒤 F9 재실행.", "새 창 안 뜸", 48)');
+  lines.push('        return');
+  lines.push('    }');
+  lines.push('    WinActivate("ahk_id " . dialogHwnd)');
+  lines.push('    Sleep(500)');
+  lines.push('    ToolTip("[3/3] 새 채팅창 활성화. 초기 " . initialNames.Length . "명 추가 중...")');
+  lines.push('    Sleep(300)');
+  lines.push('    ; ── 초기 멤버 추가 ──');
+  lines.push('    Loop initialNames.Length {');
+  lines.push('        currentName := initialNames[A_Index]');
+  lines.push('        isLast := (A_Index = initialNames.Length)');
+  lines.push('        ToolTip("[초기 " . A_Index . "/" . initialNames.Length . "] " . currentName . (isLast ? " (마지막)" : ""))');
+  lines.push('        if !AddMember(currentName, isLast) {');
+  lines.push('            ToolTip()');
+  lines.push('            MsgBox("초기 멤버 " . currentName . " 추가 중 활성 창이 사라졌어요. 중단합니다.", "중단", 16)');
+  lines.push('            return');
+  lines.push('        }');
+  lines.push('        ; ── 진행 신호 ──');
+  lines.push('        A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
+  lines.push('        Sleep(150)');
+  lines.push('    }');
+  lines.push('    ; ── 8단계: SetGroupName (사용자 스펙 8번) — 무조건 실행 ──');
+  lines.push('    ToolTip("단톡방 이름 입력 (1차)...")');
+  lines.push('    Sleep(200)');
+  lines.push('    SetGroupName(groupName)');
+  lines.push('    ; ── 9단계: SetGroupName 한 번 더 (사용자 스펙 9번) — 무조건 실행 ──');
+  lines.push('    ToolTip("단톡방 이름 입력 (2차)...")');
+  lines.push('    Sleep(500)');
+  lines.push('    SetGroupName(groupName)');
+  lines.push('    ; ── 단톡방 채팅창 안정화 대기 ──');
+  lines.push('    ToolTip("단톡방 채팅창 안정화 대기...")');
+  lines.push('    Sleep(DELAY_AFTER_ROOM_CREATE)');
+  lines.push('    ; ── 10단계: 나머지 멤버 Ctrl+I로 1명씩 추가 ──');
+  lines.push('    if (additionalNames.Length > 0) {');
+  lines.push('        Loop additionalNames.Length {');
+  lines.push('            currentName := additionalNames[A_Index]');
+  lines.push('            ToolTip("[추가 " . A_Index . "/" . additionalNames.Length . "] " . currentName . " 초대 중 (Ctrl+I)")');
+  lines.push('            if !InviteOneViaCtrlI(currentName) {');
+  lines.push('                ToolTip()');
+  lines.push('                MsgBox("추가 멤버 " . currentName . " 초대 실패. 나머지는 직접 추가해주세요.", "일부 실패", 48)');
+  lines.push('                Break');
+  lines.push('            }');
+  lines.push('            ; ── 진행 신호 ──');
+  lines.push('            A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
+  lines.push('            Sleep(150)');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    ; ── 안전망: 모든 멤버 명단을 한 번에 보냄 (자동 체크 보장) ──');
+  lines.push('    ToolTip("진행 상황 동기화 중...")');
+  lines.push('    doneClip := "[KAKAOBOT_DONE]`n" . groupName');
+  lines.push('    for n in initialNames');
+  lines.push('        doneClip .= "`n" . n');
+  lines.push('    for n in additionalNames');
+  lines.push('        doneClip .= "`n" . n');
+  lines.push('    A_Clipboard := doneClip');
+  lines.push('    Sleep(700)');
+  lines.push('    ; ── 11+12단계: 수동 멤버 안내 + 환영 메시지 클립보드 복사 ──');
+  lines.push('    ToolTip()');
+  lines.push('    Sleep(500)');
+  lines.push('    ShowFinalSummary()');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; Ctrl+F12 = 종료');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('^F12:: {');
+  lines.push('    ExitApp()');
+  lines.push('}');
+  lines.push('');
+
+  var content = '\uFEFF' + lines.join('\r\n'); // BOM + CRLF
+  var blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var safeName = groupName.replace(/[\/\\:*?"<>|]/g, '_');
+  a.href = url; a.download = '카카오톡_자동초대_' + safeName + '.ahk';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  var msg = manualNames.length > 0
+    ? 'AHK 다운로드 완료 — 자동 ' + safeNames.length + '명, 수동 추가 필요 ' + manualNames.length + '명'
+    : 'AHK 스크립트 다운로드됨 — AutoHotkey v2 설치 후 실행하세요';
+  showToast(msg);
+}
+
+// ═══ INIT ════════════════════════════════════════════════════════
+renderRoster();
+renderFixedList();
+updateConnectionUI();
+autoSyncOnLoad();
+</script>
+</body>
+</html>
