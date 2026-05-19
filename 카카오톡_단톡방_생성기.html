@@ -1796,13 +1796,18 @@ function splitMembersForAutomation(){
 }
 
 // 클립보드 페이로드 생성: v3 — 초기/추가/수동 세 섹션
-function buildClipboardPayload(groupName, initialNames, additionalNames, manualNames){
+function buildClipboardPayload(groupName, initialNames, additionalNames, manualNames, welcomeMsg){
   var parts = ['[KAKAOBOT_v3]', groupName];
   initialNames.forEach(function(n){ parts.push(n); });
   parts.push('---ADDITIONAL---');
   additionalNames.forEach(function(n){ parts.push(n); });
   parts.push('---MANUAL---');
   manualNames.forEach(function(n){ parts.push(n); });
+  // 환영 메시지 (있으면 페이로드 마지막에 — 멀티라인이라 끝에 두는 게 안전)
+  if (welcomeMsg && welcomeMsg.trim()) {
+    parts.push('---WELCOME---');
+    parts.push(welcomeMsg);
+  }
   return parts.join('\n');
 }
 
@@ -1813,7 +1818,8 @@ function runViaHelper(){
     showToast('고정멤버를 최소 2명 등록해야 합니다 (단톡방 생성용)');
     return;
   }
-  var payload = buildClipboardPayload(groupName, split.initialNames, split.additionalNames, split.manualNames);
+  var welcomeMsg = (document.getElementById('welcome-msg') ? document.getElementById('welcome-msg').value : '') || '';
+  var payload = buildClipboardPayload(groupName, split.initialNames, split.additionalNames, split.manualNames, welcomeMsg);
 
   // 클립보드 복사
   var ta = document.createElement('textarea');
@@ -1903,7 +1909,7 @@ function downloadHelperAHK(){
   lines.push('DELAY_AFTER_INVITE := 1500        ; Ctrl+I 후 초대창 뜨는 시간');
   lines.push('DELAY_AFTER_CONFIRM := 1200       ; 확인 누른 뒤 창 닫힘 시간');
   lines.push('');
-  lines.push('; 클립보드 데이터 파싱 (v3: initial / additional / manual 세 섹션)');
+  lines.push('; 클립보드 데이터 파싱 (v3: initial / additional / manual / welcome 네 섹션)');
   lines.push('ParseClipboard() {');
   lines.push('    raw := A_Clipboard');
   lines.push('    lines := StrSplit(raw, "`n", "`r")');
@@ -1914,27 +1920,42 @@ function downloadHelperAHK(){
   lines.push('    data["initialNames"] := []');
   lines.push('    data["additionalNames"] := []');
   lines.push('    data["manualNames"] := []');
+  lines.push('    data["welcomeMessage"] := ""');
   lines.push('    section := "initial"');
+  lines.push('    welcomeMessage := ""');
   lines.push('    Loop lines.Length - 2 {');
   lines.push('        i := A_Index + 2');
-  lines.push('        line := Trim(lines[i])');
-  lines.push('        if (line = "")');
+  lines.push('        line := lines[i]');
+  lines.push('        if (section = "welcome") {');
+  lines.push('            ; 환영 메시지는 빈 줄/공백도 보존 (Trim 안 함)');
+  lines.push('            if (welcomeMessage != "")');
+  lines.push('                welcomeMessage .= "`n"');
+  lines.push('            welcomeMessage .= line');
   lines.push('            continue');
-  lines.push('        if (line = "---ADDITIONAL---") {');
+  lines.push('        }');
+  lines.push('        trimmed := Trim(line)');
+  lines.push('        if (trimmed = "")');
+  lines.push('            continue');
+  lines.push('        if (trimmed = "---ADDITIONAL---") {');
   lines.push('            section := "additional"');
   lines.push('            continue');
   lines.push('        }');
-  lines.push('        if (line = "---MANUAL---") {');
+  lines.push('        if (trimmed = "---MANUAL---") {');
   lines.push('            section := "manual"');
   lines.push('            continue');
   lines.push('        }');
+  lines.push('        if (trimmed = "---WELCOME---") {');
+  lines.push('            section := "welcome"');
+  lines.push('            continue');
+  lines.push('        }');
   lines.push('        if (section = "initial")');
-  lines.push('            data["initialNames"].Push(line)');
+  lines.push('            data["initialNames"].Push(trimmed)');
   lines.push('        else if (section = "additional")');
-  lines.push('            data["additionalNames"].Push(line)');
+  lines.push('            data["additionalNames"].Push(trimmed)');
   lines.push('        else');
-  lines.push('            data["manualNames"].Push(line)');
+  lines.push('            data["manualNames"].Push(trimmed)');
   lines.push('    }');
+  lines.push('    data["welcomeMessage"] := welcomeMessage');
   lines.push('    return data');
   lines.push('}');
   lines.push('');
@@ -2115,8 +2136,10 @@ function downloadHelperAHK(){
   lines.push('; 최종 완료 안내 — 수동 멤버 명단 + 환영 메시지 클립보드 복사');
   lines.push(';   환영 메시지는 클립보드에 복사된 상태로 종료 (자동 전송 X)');
   lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('ShowFinalSummary(groupName, manualNames) {');
-  lines.push('    welcomeMsg := "안녕하세요, 홈체크입니다.`n" . groupName . " 단톡방입니다."');
+  lines.push('ShowFinalSummary(groupName, manualNames, welcomeMessage) {');
+  lines.push('    ; 페이로드에 환영 메시지가 있으면 그것 사용, 없으면 짧은 기본 메시지로 폴백');
+  lines.push('    if (welcomeMessage = "")');
+  lines.push('        welcomeMessage := "안녕하세요, 홈체크입니다.`n" . groupName . " 단톡방입니다."');
   lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
   lines.push('    if (manualNames.Length > 0) {');
   lines.push('        namesList := ""');
@@ -2127,9 +2150,8 @@ function downloadHelperAHK(){
   lines.push('    }');
   lines.push('    msg .= "`n━━━━━━━━━━━━━━━━━━━━`n"');
   lines.push('    msg .= "[환영 메시지 클립보드 복사 완료]`n"');
-  lines.push('    msg .= welcomeMsg . "`n"');
   lines.push('    msg .= "`n👉 단톡방 채팅창 클릭 → Ctrl+V → Enter로 전송하시면 됩니다."');
-  lines.push('    A_Clipboard := welcomeMsg  ; ★ 환영 메시지를 클립보드에 복사');
+  lines.push('    A_Clipboard := welcomeMessage  ; ★ 환영 메시지를 클립보드에 복사');
   lines.push('    MsgBox(msg, "완료", 64)');
   lines.push('}');
   lines.push('');
@@ -2329,7 +2351,7 @@ function downloadHelperAHK(){
   lines.push('    UpdateProgress(invitedMembers.Length, totalProg, "✓ " . invitedMembers.Length . " / " . totalProg . " 명 완료")');
   lines.push('    Sleep(1200)');
   lines.push('    CloseProgressGui()');
-  lines.push('    ShowFinalSummary(groupName, manualNames)');
+  lines.push('    ShowFinalSummary(groupName, manualNames, data["welcomeMessage"])');
   lines.push('}');
   lines.push('');
   lines.push('^F12:: {');
