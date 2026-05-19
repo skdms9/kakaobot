@@ -195,6 +195,17 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .m-row.invited .m-check.auto{background:#1E88E5;border-color:#1E88E5}
 .m-row.invited{background:#F1F8E9!important;border-color:#A5D6A7!important}
 .m-row.invited .m-kakao{color:#558B2F;text-decoration:line-through;text-decoration-color:rgba(85,139,47,.3);text-decoration-thickness:1px}
+
+/* 환영 메시지 미리보기 */
+.welcome-section{margin:14px 0 12px;padding:13px;background:#FFFDF5;border:1.5px solid var(--yellow);border-radius:11px}
+.welcome-section-title{font-size:12px;font-weight:700;color:var(--brown);margin-bottom:9px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.welcome-warn{background:#FFF3E0;border:1px solid #FFB74D;border-radius:7px;padding:8px 11px;font-size:11px;color:#E65100;margin-bottom:9px;line-height:1.65}
+.welcome-warn a{color:#1565C0;font-weight:700;cursor:pointer;text-decoration:underline}
+#welcome-msg{width:100%;min-height:230px;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;line-height:1.7;color:var(--text);background:#fff;resize:vertical;box-sizing:border-box}
+#welcome-msg:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,229,0,.2)}
+.welcome-copy{display:block;width:100%;margin-top:9px;padding:11px 14px;background:var(--yellow);color:var(--brown);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
+.welcome-copy:hover{background:var(--yd);transform:translateY(-1px)}
+.welcome-copy.ok{background:#4CAF50;color:#fff}
 </style>
 </head>
 <body>
@@ -207,7 +218,8 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 <div class="tabs">
   <button class="tab on" onclick="switchTab(0)"><span class="tab-ic">🏗️</span>만들기</button>
   <button class="tab" onclick="switchTab(1)"><span class="tab-ic">📇</span>인원명부</button>
-  <button class="tab" onclick="switchTab(2)"><span class="tab-ic">📌</span>고정멤버</button>
+  <button class="tab" onclick="switchTab(2)"><span class="tab-ic">🏢</span>집합장소</button>
+  <button class="tab" onclick="switchTab(3)"><span class="tab-ic">📌</span>고정멤버</button>
 </div>
 
 <!-- TAB 0 -->
@@ -268,13 +280,24 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
     </div>
 
     <div id="member-sections"></div>
+
+    <!-- 환영 메시지 미리보기/편집 -->
+    <div class="welcome-section">
+      <div class="welcome-section-title">
+        <span>📨 환영 메시지 (미리보기 / 편집)</span>
+      </div>
+      <div id="welcome-warn-box"></div>
+      <textarea id="welcome-msg" placeholder="단톡방 정보 생성 후 자동으로 채워집니다."></textarea>
+      <button class="welcome-copy" id="welcome-copy-btn" onclick="copyWelcomeMessage()">📋 메시지 복사</button>
+    </div>
+
     <button class="copy-all" id="copy-all-btn" onclick="copyAllNames()">📋 초대 목록 전체 복사</button>
 
     <div class="auto-btns">
       <button class="auto-btn auto-btn-guide" onclick="runViaHelper()">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
     </div>
 
-    <div style="margin-top:10px;text-align:center">
+    <div style="margin-top:10px;text-align:center;display:none">
       <button onclick="showHelperSetup()" style="background:none;border:none;color:var(--text2);font-size:11px;font-family:inherit;cursor:pointer;text-decoration:underline">⚙ 처음 한 번만 설치 안내</button>
     </div>
 
@@ -336,7 +359,49 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
   </div>
 </div></div>
 
-<!-- TAB 2: 고정멤버 -->
+<!-- TAB 2: 집합장소 -->
+<div class="pane" id="pane-venue"><div class="wrap">
+  <div class="card">
+    <div class="ctitle">🏢 집합장소 정보 (구글 시트 자동 연동)</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.7">
+      날짜와 현장명이 일치하면 자동 매칭되어 환영 메시지에 집합장소 정보가 채워집니다.
+    </p>
+    <div style="background:#E3F2FD;border-radius:8px;padding:11px 13px;font-size:11px;color:#0D47A1;margin-bottom:14px;line-height:1.7">
+      📋 <strong>시트 열 구성</strong>: A=시작날짜, B=종료날짜, C=현장명, D=현장주소, E=집합장소명, F=집합장소주소, G=지도링크, H=출발시간, I=비고
+    </div>
+
+    <!-- 연결 안된 상태 -->
+    <div id="venue-disconnected">
+      <label class="fl">구글 시트 URL (CSV 게시 URL 권장)</label>
+      <input type="text" id="venue-url-input" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?...output=csv" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:12px;background:#fff;color:var(--text);margin-bottom:8px">
+      <button onclick="connectVenueSheet()" class="fbtn pri" style="width:100%;padding:11px;font-size:14px">🔗 시트 연결</button>
+    </div>
+
+    <!-- 연결된 상태 -->
+    <div id="venue-connected" class="hidden">
+      <div style="background:#E8F5E9;border:1.5px solid #4CAF50;border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font-size:16px">✓</span>
+          <span style="font-size:13px;font-weight:700;color:#1B5E20">집합장소 시트 연결됨</span>
+        </div>
+        <div style="font-size:11px;color:#1B5E20;line-height:1.6" id="venue-status">—</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="manualVenueRefresh()" class="fbtn pri" style="flex:1">🔄 지금 새로고침</button>
+        <button onclick="disconnectVenueSheet()" class="fbtn sec" style="flex:0 0 auto">연결 해제</button>
+      </div>
+    </div>
+
+    <div id="venue-sync-result"></div>
+
+    <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:12px;font-weight:700;color:var(--brown)">저장된 집합장소 <span id="venue-count" style="color:var(--text2);font-weight:500"></span></div>
+    </div>
+    <div id="venue-list" style="margin-top:8px"></div>
+  </div>
+</div></div>
+
+<!-- TAB 3: 고정멤버 -->
 <div class="pane" id="pane1"><div class="wrap">
   <div class="card">
     <div class="ctitle">📌 고정 초대 멤버</div>
@@ -382,7 +447,8 @@ function switchTab(i){
   document.querySelectorAll('.tab').forEach(function(t,j){ t.classList.toggle('on',j===i); });
   document.querySelectorAll('.pane').forEach(function(p,j){ p.classList.toggle('on',j===i); });
   if(i===1) renderRoster();
-  if(i===2) renderFixedList();
+  if(i===2) renderVenueList();
+  if(i===3) renderFixedList();
 }
 
 // ═══ UPLOAD ═════════════════════════════════════════════════════
@@ -630,7 +696,9 @@ function buildFinalResult(){
         };
       })();
       row.appendChild(rb); row.appendChild(kn);
-      if(m.mapped&&m.excelName!==m.kakaoName){
+      if(m.isFixed){
+        // 고정 멤버 — 추가 태그 없음
+      } else if(m.mapped&&m.excelName!==m.kakaoName){
         var orig=document.createElement('span'); orig.className='m-orig'; orig.textContent='(매핑됨)';
         row.appendChild(orig);
       } else if(m.fromRoster){
@@ -670,6 +738,9 @@ function buildFinalResult(){
   // 진행 상황 복원 + 진행률 갱신
   applyInvitedStatusToRows();
   updateProgressBar();
+
+  // 환영 메시지 미리보기 채우기
+  updateWelcomeMessage();
 }
 
 // ═══ INVITE PROGRESS ════════════════════════════════════════════════
@@ -1223,6 +1294,260 @@ function clearRosterConfirm(){
   }
 }
 
+// ═══ VENUE (집합장소DB) ══════════════════════════════════════════
+// 구글 시트의 집합장소 정보를 동기화. URL을 저장해두면 자동 새로고침.
+// 시트 구성: A=시작날짜, B=종료날짜, C=현장명, D=현장주소, E=집합장소명, F=집합장소주소, G=지도링크, H=출발시간, I=비고
+function loadVenueUrl(){ return localStorage.getItem('kakao_venue_url') || ''; }
+function saveVenueUrl(u){ localStorage.setItem('kakao_venue_url', u); }
+function clearVenueUrl(){ localStorage.removeItem('kakao_venue_url'); }
+function loadVenues(){ try{ return JSON.parse(localStorage.getItem('kakao_venues')||'[]'); }catch(e){ return []; } }
+function saveVenues(a){ localStorage.setItem('kakao_venues', JSON.stringify(a)); }
+function loadVenueSyncedAt(){ var v = localStorage.getItem('kakao_venue_synced_at'); return v ? parseInt(v, 10) : 0; }
+function saveVenueSyncedAt(t){ localStorage.setItem('kakao_venue_synced_at', String(t)); }
+
+// "2026-05-23(토)" → "2026-05-23", "2026/5/3" → "2026-05-03"
+function normalizeDate(s){
+  if(!s) return '';
+  s = String(s).trim();
+  var m = s.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if(!m) return s;
+  return m[1] + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[3]).slice(-2);
+}
+
+// CSV → 집합장소 배열 (덮어쓰기 동기화)
+function syncVenuesFromCsv(csv){
+  var rows = parseCSV(csv);
+  if(!rows.length) return { total: 0, parsed: 0, hasHeader: false };
+  // 헤더 감지: 첫 셀이 날짜 형식이 아니면 헤더로 판단
+  var hasHeader = false;
+  var first = rows[0] && String(rows[0][0]||'').trim();
+  if(first && !/^\d{4}/.test(first)) hasHeader = true;
+  var dataRows = hasHeader ? rows.slice(1) : rows;
+  var venues = [];
+  dataRows.forEach(function(r){
+    if(!r) return;
+    var startDate = String(r[0]||'').trim();
+    var endDate = String(r[1]||'').trim();
+    var bldg = String(r[2]||'').trim();
+    if(!startDate || !bldg) return;
+    venues.push({
+      startDate: startDate,
+      endDate: endDate || startDate,
+      bldg: bldg,
+      bldgAddr: String(r[3]||'').trim(),
+      locName: String(r[4]||'').trim(),
+      locAddr: String(r[5]||'').trim(),
+      locLink: String(r[6]||'').trim(),
+      departTime: String(r[7]||'').trim(),
+      memo: String(r[8]||'').trim()
+    });
+  });
+  saveVenues(venues);
+  return { total: venues.length, parsed: dataRows.length, hasHeader: hasHeader };
+}
+
+function connectVenueSheet(){
+  var url = document.getElementById('venue-url-input').value.trim();
+  if(!url){ showToast('URL을 입력하세요'); return; }
+  if(!extractSheetId(url) && !isPublishUrl(url)){ showToast('유효한 구글 시트 URL이 아닙니다'); return; }
+  var btn = document.querySelector('#venue-disconnected button.fbtn.pri');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 연결 중...';
+  fetchSheetCsv(url, function(err, csv){
+    btn.disabled = false; btn.innerHTML = '🔗 시트 연결';
+    if(err){
+      document.getElementById('venue-sync-result').innerHTML =
+        '<div style="background:#FFEBEE;border:1.5px solid #D93025;border-radius:9px;padding:12px 14px;font-size:12px;color:#B71C1C;margin-top:10px;line-height:1.7">'
+        + '<div style="font-weight:700;margin-bottom:6px">❌ 시트 연결 실패</div>'
+        + '<div style="color:#7B1818;font-size:11px">' + esc(err.message) + '</div></div>';
+      return;
+    }
+    var result = syncVenuesFromCsv(csv);
+    saveVenueUrl(url);
+    saveVenueSyncedAt(Date.now());
+    document.getElementById('venue-url-input').value = '';
+    document.getElementById('venue-sync-result').innerHTML =
+      '<div style="background:#E8F5E9;border:1.5px solid #4CAF50;border-radius:9px;padding:10px 13px;font-size:12px;color:#1B5E20;margin-top:10px;line-height:1.7">'
+      + '✓ 연결 성공! <strong>' + result.total + '개 집합장소</strong> 로드됨'
+      + (result.hasHeader ? ' (헤더 감지)' : ' (헤더 없음)')
+      + '</div>';
+    renderVenueList();
+    updateVenueConnectionUI();
+    // 결과 화면이 켜져있으면 메시지 다시 빌드
+    if(curDate && curBldg && !document.getElementById('result').classList.contains('hidden')) updateWelcomeMessage();
+  });
+}
+
+function manualVenueRefresh(){
+  var url = loadVenueUrl();
+  if(!url){ showToast('연결된 시트가 없습니다'); return; }
+  var btn = document.querySelector('#venue-connected button.fbtn.pri');
+  btn.disabled = true; var oldHtml = btn.innerHTML; btn.innerHTML = '<span class="spin"></span> 새로고침 중...';
+  fetchSheetCsv(url, function(err, csv){
+    btn.disabled = false; btn.innerHTML = oldHtml;
+    if(err){ showToast('새로고침 실패: ' + err.message); return; }
+    var result = syncVenuesFromCsv(csv);
+    saveVenueSyncedAt(Date.now());
+    showToast(result.total + '개 집합장소 동기화됨');
+    renderVenueList();
+    updateVenueConnectionUI();
+    if(curDate && curBldg && !document.getElementById('result').classList.contains('hidden')) updateWelcomeMessage();
+  });
+}
+
+function disconnectVenueSheet(){
+  if(!confirm('집합장소 시트 연결을 해제하시겠습니까? 저장된 데이터는 유지됩니다.')) return;
+  clearVenueUrl();
+  updateVenueConnectionUI();
+  showToast('연결 해제됨');
+}
+
+function updateVenueConnectionUI(){
+  var url = loadVenueUrl();
+  var dis = document.getElementById('venue-disconnected');
+  var con = document.getElementById('venue-connected');
+  if(!dis || !con) return;
+  if(url){
+    dis.classList.add('hidden');
+    con.classList.remove('hidden');
+    var ms = loadVenueSyncedAt();
+    var count = loadVenues().length;
+    document.getElementById('venue-status').textContent =
+      count + '개 집합장소 · 마지막 동기화: ' + (ms ? formatTimeAgo(Date.now() - ms) : '없음');
+  } else {
+    dis.classList.remove('hidden');
+    con.classList.add('hidden');
+  }
+}
+
+function autoSyncVenueOnLoad(){
+  var url = loadVenueUrl();
+  if(!url) return;
+  var last = loadVenueSyncedAt();
+  // 5분 이내면 스킵
+  if(last && (Date.now() - last) < 5*60*1000){
+    updateVenueConnectionUI();
+    return;
+  }
+  fetchSheetCsv(url, function(err, csv){
+    if(err){ console.warn('[venue auto sync] ' + err.message); updateVenueConnectionUI(); return; }
+    syncVenuesFromCsv(csv);
+    saveVenueSyncedAt(Date.now());
+    renderVenueList();
+    updateVenueConnectionUI();
+    if(curDate && curBldg && !document.getElementById('result').classList.contains('hidden')) updateWelcomeMessage();
+  });
+}
+
+function renderVenueList(){
+  var list = document.getElementById('venue-list');
+  if(!list) return;
+  var arr = loadVenues();
+  var cntEl = document.getElementById('venue-count');
+  if(cntEl) cntEl.textContent = '(' + arr.length + '개)';
+  list.innerHTML = '';
+  if(!arr.length){
+    list.innerHTML = '<div class="empty"><div class="empty-i">🏢</div>저장된 집합장소가 없습니다.<br>위에서 구글 시트를 연결하세요.</div>';
+    return;
+  }
+  // 시작날짜 오름차순
+  var sorted = arr.slice().sort(function(a,b){
+    return normalizeDate(a.startDate).localeCompare(normalizeDate(b.startDate));
+  });
+  sorted.forEach(function(v){
+    var div = document.createElement('div');
+    div.style.cssText = 'padding:10px 12px;background:#FAF7F2;border-radius:8px;border:1.5px solid var(--border);margin-bottom:7px;font-size:12px;line-height:1.6';
+    div.innerHTML =
+      '<div style="font-weight:700;color:var(--brown);margin-bottom:3px">' + esc(v.bldg) + '</div>'
+      + '<div style="color:var(--text2);font-size:11px">'
+      + '📅 ' + esc(v.startDate) + ' ~ ' + esc(v.endDate)
+      + ' · 🏢 ' + esc(v.locName || '—')
+      + (v.departTime ? ' · ⏰ ' + esc(v.departTime) : '')
+      + '</div>';
+    list.appendChild(div);
+  });
+}
+
+// 선택한 날짜가 [시작~종료] 범위에 들고 현장명 일치하는 행 반환 (없으면 null)
+function findVenueMatch(date, bldg){
+  if(!date || !bldg) return null;
+  var venues = loadVenues();
+  var dn = normalizeDate(date);
+  for(var i=0; i<venues.length; i++){
+    var v = venues[i];
+    if(v.bldg.trim() !== String(bldg).trim()) continue;
+    var sn = normalizeDate(v.startDate);
+    var en = normalizeDate(v.endDate);
+    if(dn >= sn && dn <= en) return v;
+  }
+  return null;
+}
+
+// 환영 메시지 생성 (집합장소 매치 없으면 [입력 필요] 자리표시자)
+function buildWelcomeMessage(date, bldg, venue){
+  function f(v){ return v ? v : '[입력 필요]'; }
+  var lines = [];
+  lines.push('안녕하세요, 홈체크입니다.');
+  lines.push('');
+  lines.push(date);
+  lines.push(bldg);
+  lines.push('단톡방입니다.');
+  lines.push('');
+  lines.push('현장 주소 : ' + f(venue && venue.bldgAddr));
+  lines.push('');
+  lines.push('집합장소명 : ' + f(venue && venue.locName));
+  lines.push('주소 : ' + f(venue && venue.locAddr));
+  lines.push('(' + f(venue && venue.locLink) + ')');
+  lines.push('');
+  lines.push('각자 식사 후');
+  lines.push('**9시 30분까지**');
+  lines.push('늦지 않게 *집합장소로 와주시면 됩니다.');
+  lines.push('');
+  lines.push('사무실 출발 시간은');
+  lines.push('**' + f(venue && venue.departTime) + ' 입니다.');
+  lines.push('');
+  lines.push('도착하시는대로 위치 공유 부탁드립니다.');
+  return lines.join('\n');
+}
+
+function updateWelcomeMessage(){
+  var ta = document.getElementById('welcome-msg');
+  if(!ta) return;
+  if(!curDate || !curBldg) return;
+  var venue = findVenueMatch(curDate, curBldg);
+  ta.value = buildWelcomeMessage(curDate, curBldg, venue);
+  var warnBox = document.getElementById('welcome-warn-box');
+  if(warnBox){
+    if(!venue){
+      var venueCount = loadVenues().length;
+      var msg = venueCount === 0
+        ? '집합장소 시트가 연결되지 않았어요. <a onclick="switchTab(2)">집합장소 탭</a>에서 연결하세요. 메시지의 <strong>[입력 필요]</strong> 부분은 직접 채워주세요.'
+        : '"<strong>' + esc(curBldg) + '</strong>" + 선택 날짜에 맞는 집합장소를 못 찾았어요. <a onclick="switchTab(2)">집합장소 탭</a>에서 시트 내용을 확인하세요. 메시지의 <strong>[입력 필요]</strong> 부분은 직접 채워주세요.';
+      warnBox.innerHTML = '<div class="welcome-warn">⚠ ' + msg + '</div>';
+    } else {
+      warnBox.innerHTML = '';
+    }
+  }
+  // 복사 버튼 상태 리셋
+  var btn = document.getElementById('welcome-copy-btn');
+  if(btn){ btn.textContent = '📋 메시지 복사'; btn.classList.remove('ok'); }
+}
+
+function copyWelcomeMessage(){
+  var ta = document.getElementById('welcome-msg');
+  if(!ta) return;
+  var text = ta.value;
+  if(!text){ showToast('메시지가 비어있습니다'); return; }
+  copyText(text, function(){
+    var btn = document.getElementById('welcome-copy-btn');
+    btn.textContent = '✓ 복사됨 — 단톡방에서 Ctrl+V';
+    btn.classList.add('ok');
+    setTimeout(function(){
+      btn.textContent = '📋 메시지 복사';
+      btn.classList.remove('ok');
+    }, 2500);
+  });
+}
+
 // ═══ FIXED MEMBERS ═══════════════════════════════════════════════
 function renderFixedList(){
   var list=document.getElementById('fixed-list'); list.innerHTML='';
@@ -1369,9 +1694,7 @@ function runViaHelper(){
     + '<strong>3.</strong> 키보드의 <strong style="color:#D93025;font-size:14px">F9 키</strong>를 누르세요</div>'
     + '<div style="margin-top:12px;padding:9px 11px;background:#E8F5E9;border-radius:7px;font-size:12px;color:#1B5E20;line-height:1.7"><strong>✓ F9 한 번 = 자동으로</strong> 새 채팅창 열기 → 멤버 추가 → 단톡방 생성까지 끝.</div>'
     + '</div>'
-    + '<div style="background:#FFF3E0;border-radius:8px;padding:11px 13px;font-size:11px;color:#E65100;margin-bottom:14px;line-height:1.7"><strong>⚠ F9 눌렀는데 새 채팅창 자동으로 안 열리면</strong>: 도우미가 옛날 버전일 수 있어요. <strong>화면 오른쪽 아래 시계 옆 [H] 아이콘 우클릭 → Exit</strong>로 끈 다음, 아래 <strong>[도우미 설치]</strong>에서 새 버전 받아서 다시 실행해주세요.</div>'
-    + '<div class="modal-btns"><button class="fbtn sec" onclick="closeRunModal()">닫기</button>'
-    + '<button class="fbtn pri" onclick="closeRunModal();showHelperSetup()">도우미 설치</button></div>'
+    + '<div class="modal-btns"><button class="fbtn sec" onclick="closeRunModal()">닫기</button></div>'
     + '</div>';
 }
 
@@ -1908,8 +2231,11 @@ function closeHelperSetup(){
 // ═══ INIT ════════════════════════════════════════════════════════
 renderRoster();
 renderFixedList();
+renderVenueList();
 updateConnectionUI();
+updateVenueConnectionUI();
 autoSyncOnLoad();
+autoSyncVenueOnLoad();
 </script>
 </body>
 </html>
