@@ -206,6 +206,26 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .welcome-copy{display:block;width:100%;margin-top:9px;padding:11px 14px;background:var(--yellow);color:var(--brown);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
 .welcome-copy:hover{background:var(--yd);transform:translateY(-1px)}
 .welcome-copy.ok{background:#4CAF50;color:#fff}
+
+/* 본사/대구 양식 토글 */
+.welcome-style-toggle{display:flex;gap:6px;margin-bottom:10px}
+.ws-btn{flex:1;padding:8px 12px;border:1.5px solid var(--border);background:#fff;color:var(--text2);font-family:inherit;font-size:12px;font-weight:700;border-radius:7px;cursor:pointer;transition:all .15s}
+.ws-btn.active{background:var(--yellow);border-color:var(--yd);color:var(--brown);box-shadow:0 1px 4px rgba(254,229,0,.4)}
+.ws-btn:hover:not(.active){background:#FAF7F2}
+
+/* 멤버 섹션 접기 토글 */
+.member-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#FAF7F2;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--brown);cursor:pointer;margin-bottom:8px;transition:background .15s;user-select:none}
+.member-toggle:hover{background:#FFF8E1}
+.member-toggle .toggle-arrow{font-size:10px;transition:transform .2s;color:var(--text2);margin-left:8px}
+.member-toggle.collapsed .toggle-arrow{transform:rotate(-90deg)}
+#member-sections.collapsed{display:none}
+.member-toggle .mc-label{color:var(--text2);font-weight:500;margin-left:6px;font-size:11px}
+
+/* 맨 위로 이동 버튼 */
+.back-to-top{position:fixed;right:18px;bottom:24px;width:46px;height:46px;border-radius:50%;background:var(--yellow);color:var(--brown);border:1.5px solid var(--yd);font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.25);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .2s,transform .2s,visibility .2s;z-index:200;font-family:inherit;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+.back-to-top.show{opacity:1;visibility:visible;transform:translateY(0)}
+.back-to-top:hover{background:var(--yd);box-shadow:0 5px 14px rgba(0,0,0,.32)}
+.back-to-top:active{transform:translateY(1px)}
 </style>
 </head>
 <body>
@@ -279,12 +299,20 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
       </div>
     </div>
 
+    <div class="member-toggle" id="member-toggle" onclick="toggleMemberSections()">
+      <span>👥 인원 목록 <span class="mc-label" id="member-count-label"></span></span>
+      <span class="toggle-arrow">▼</span>
+    </div>
     <div id="member-sections"></div>
 
     <!-- 환영 메시지 미리보기/편집 -->
     <div class="welcome-section">
       <div class="welcome-section-title">
         <span>📨 환영 메시지 (미리보기 / 편집)</span>
+      </div>
+      <div class="welcome-style-toggle">
+        <button class="ws-btn active" data-style="본사" onclick="setMessageStyle('본사')">🏢 본사</button>
+        <button class="ws-btn" data-style="대구" onclick="setMessageStyle('대구')">📍 대구</button>
       </div>
       <div id="welcome-warn-box"></div>
       <textarea id="welcome-msg" placeholder="단톡방 정보 생성 후 자동으로 채워집니다."></textarea>
@@ -297,7 +325,7 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
       <button class="auto-btn auto-btn-guide" onclick="runViaHelper()">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
     </div>
 
-    <div style="margin-top:10px;text-align:center;display:none">
+    <div style="margin-top:10px;text-align:center">
       <button onclick="showHelperSetup()" style="background:none;border:none;color:var(--text2);font-size:11px;font-family:inherit;cursor:pointer;text-decoration:underline">⚙ 처음 한 번만 설치 안내</button>
     </div>
 
@@ -579,15 +607,63 @@ function buildBldgList(){
 // ═══ GENERATE FLOW ═══════════════════════════════════════════════
 function doGenerate(){
   var btn=document.getElementById('gbtn');
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span> 분석 중...';
-  setTimeout(function(){
-    try{
-      buildFinalResult();
-      show('result');
-    } finally {
-      btn.disabled=false; btn.innerHTML='💬 단톡방 정보 생성';
-    }
-  },60);
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> 시트 동기화 중...';
+  syncBothSheets(function(){
+    btn.innerHTML='<span class="spin"></span> 분석 중...';
+    setTimeout(function(){
+      try{
+        buildFinalResult();
+        show('result');
+      } finally {
+        btn.disabled=false; btn.innerHTML='💬 단톡방 정보 생성';
+      }
+    },60);
+  });
+}
+
+// 인원명부 + 집합장소 두 시트를 병렬로 백그라운드 동기화 (스로틀 없음, 8초 하드 타임아웃)
+// 동기화 실패해도 캐시 데이터로 진행됨
+function syncBothSheets(callback){
+  var venueUrl = loadVenueUrl();
+  var rosterUrl = loadSheetUrl();
+  var pending = 0;
+  if(venueUrl) pending++;
+  if(rosterUrl) pending++;
+  if(pending === 0){ callback(); return; }
+
+  var called = false;
+  function finish(){ if(!called){ called = true; callback(); } }
+  function done(){ pending--; if(pending === 0) finish(); }
+
+  // 하드 타임아웃: 8초
+  setTimeout(finish, 8000);
+
+  if(venueUrl){
+    fetchSheetCsv(venueUrl, function(err, csv){
+      if(!err){
+        syncVenuesFromCsv(csv);
+        saveVenueSyncedAt(Date.now());
+        renderVenueList();
+        updateVenueConnectionUI();
+      } else {
+        console.warn('[doGenerate venue sync] ' + err.message);
+      }
+      done();
+    });
+  }
+  if(rosterUrl){
+    fetchSheetCsv(rosterUrl, function(err, csv){
+      if(!err){
+        syncRosterFromCsv(csv);
+        saveSyncedAt(Date.now());
+        renderRoster();
+        updateConnectionUI();
+      } else {
+        console.warn('[doGenerate roster sync] ' + err.message);
+      }
+      done();
+    });
+  }
 }
 
 // ═══ FINAL RESULT ════════════════════════════════════════════════
@@ -738,6 +814,9 @@ function buildFinalResult(){
   // 진행 상황 복원 + 진행률 갱신
   applyInvitedStatusToRows();
   updateProgressBar();
+
+  // 인원 토글 헤더 (N명 표시 + 펼친 상태로 리셋)
+  updateMemberToggleHeader();
 
   // 환영 메시지 미리보기 채우기
   updateWelcomeMessage();
@@ -1499,8 +1578,28 @@ function formatDateForMessage(date){
   return s;
 }
 
-// 환영 메시지 생성 (집합장소 매치 없으면 [입력 필요] 자리표시자)
-function buildWelcomeMessage(date, bldg, venue){
+// 환영 메시지 양식 선택 (본사/대구) — localStorage에 저장
+function loadMessageStyle(){
+  var s = localStorage.getItem('kakao_msg_style');
+  return (s === '대구') ? '대구' : '본사'; // 기본값 본사
+}
+function saveMessageStyle(s){ localStorage.setItem('kakao_msg_style', s); }
+
+function setMessageStyle(style){
+  saveMessageStyle(style);
+  // 버튼 활성 표시
+  document.querySelectorAll('.ws-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-style') === style);
+  });
+  // 메시지 재빌드 (updateWelcomeMessage 내부에서 curDate/curBldg 가드함)
+  updateWelcomeMessage();
+}
+
+// 환영 메시지 생성
+// style: '본사' (기본) — 집합장소 정보 + 출발시간 + 메모
+//        '대구'        — 집합장소 안내 문구 (지태호 팀장 공유 예정)
+function buildWelcomeMessage(date, bldg, venue, style){
+  style = style || loadMessageStyle();
   function f(v){ return v ? v : '[입력 필요]'; }
   var dateStr = formatDateForMessage(date);
   var lines = [];
@@ -1512,18 +1611,31 @@ function buildWelcomeMessage(date, bldg, venue){
   lines.push('');
   lines.push('현장 주소 : ' + f(venue && venue.bldgAddr));
   lines.push('');
-  lines.push('집합장소명 : ' + f(venue && venue.locName));
-  lines.push('주소 : ' + f(venue && venue.locAddr));
-  lines.push('(' + f(venue && venue.locLink) + ')');
+  if(style === '대구'){
+    lines.push('집합장소는 지태호 팀장님이 공유해주실 예정입니다.');
+    lines.push('조금만 기다려주세요.');
+  } else {
+    // 본사 양식
+    lines.push('집합장소명 : ' + f(venue && venue.locName));
+    lines.push('주소 : ' + f(venue && venue.locAddr));
+    lines.push('(' + f(venue && venue.locLink) + ')');
+  }
   lines.push('');
   lines.push('각자 식사 후');
   lines.push('**9시 30분까지**');
   lines.push('늦지 않게 *집합장소로 와주시면 됩니다.');
   lines.push('');
-  lines.push('사무실 출발 시간은');
-  lines.push('**' + f(venue && venue.departTime) + ' 입니다.');
-  lines.push('');
+  if(style === '본사'){
+    lines.push('사무실 출발 시간은');
+    lines.push('**' + f(venue && venue.departTime) + ' 입니다.');
+    lines.push('');
+  }
   lines.push('도착하시는대로 위치 공유 부탁드립니다.');
+  // 본사 양식만 메모 추가
+  if(style === '본사' && venue && venue.memo && venue.memo.trim()){
+    lines.push('');
+    lines.push(venue.memo.trim());
+  }
   return lines.join('\n');
 }
 
@@ -1619,6 +1731,34 @@ function hide(id){ document.getElementById(id).classList.add('hidden'); }
 function showToast(msg){
   var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+// 인원 목록 접기/펼치기
+function toggleMemberSections(){
+  var toggle = document.getElementById('member-toggle');
+  var sections = document.getElementById('member-sections');
+  if(!toggle || !sections) return;
+  var collapsed = sections.classList.toggle('collapsed');
+  toggle.classList.toggle('collapsed', collapsed);
+}
+
+// 인원 토글 헤더에 N명 표시 + 펼친 상태로 리셋 (단톡방 새로 생성할 때마다 호출)
+function updateMemberToggleHeader(){
+  var lbl = document.getElementById('member-count-label');
+  var toggle = document.getElementById('member-toggle');
+  var sections = document.getElementById('member-sections');
+  if(!toggle || !sections) return;
+  var n = sections.querySelectorAll('.m-row').length;
+  if(lbl) lbl.textContent = '(' + n + '명)';
+  // 펼친 상태로 리셋
+  toggle.classList.remove('collapsed');
+  sections.classList.remove('collapsed');
+}
+
+// 맨 위로 스크롤
+function scrollToTop(){
+  try { window.scrollTo({top:0, behavior:'smooth'}); }
+  catch(e) { window.scrollTo(0,0); }
 }
 
 // ═══ AUTOMATION: 도우미 모드 (클립보드 핸드오프) ═══════════════
@@ -2254,6 +2394,23 @@ updateConnectionUI();
 updateVenueConnectionUI();
 autoSyncOnLoad();
 autoSyncVenueOnLoad();
+
+// 저장된 환영 메시지 양식 (본사/대구) 적용
+(function initMessageStyle(){
+  var saved = loadMessageStyle();
+  document.querySelectorAll('.ws-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-style') === saved);
+  });
+})();
+
+// 맨 위로 이동 버튼 — 스크롤 300px 이상일 때만 표시
+window.addEventListener('scroll', function(){
+  var btn = document.getElementById('back-to-top-btn');
+  if(!btn) return;
+  if(window.scrollY > 300) btn.classList.add('show');
+  else btn.classList.remove('show');
+});
 </script>
+<button class="back-to-top" id="back-to-top-btn" onclick="scrollToTop()" title="맨 위로" aria-label="맨 위로">↑</button>
 </body>
 </html>
