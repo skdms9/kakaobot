@@ -97,7 +97,9 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .rb-매니저{background:#6A1B9A;color:#fff}
 .rb-참관{background:#E65100;color:#fff}
 .rb-고정{background:#546E7A;color:#fff}
-.m-kakao{font-size:13px;font-weight:700;flex:1}
+.m-kakao{font-size:13px;font-weight:700;flex:1;cursor:pointer;border-radius:5px;padding:3px 8px;margin:-3px 0;transition:background .15s,color .15s;user-select:none}
+.m-kakao:hover{background:#FFE082}
+.m-kakao.copied{background:#4CAF50;color:#fff}
 .m-orig{font-size:11px;color:var(--text2)}
 .map-quick{font-size:10px;padding:3px 8px;background:#FFF9DC;border:1px solid var(--yd);border-radius:5px;cursor:pointer;font-family:inherit;font-weight:600;color:var(--brown);flex-shrink:0}
 .map-quick:hover{background:var(--yellow)}
@@ -167,8 +169,6 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .auto-btn{flex:1;padding:13px;border:none;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.3}
 .auto-btn-guide{background:linear-gradient(135deg,#FEE500,#FFD700);color:var(--brown);box-shadow:0 3px 10px rgba(254,229,0,.4)}
 .auto-btn-guide:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(254,229,0,.55)}
-.auto-btn-ahk{background:var(--brown);color:var(--yellow)}
-.auto-btn-ahk:hover{background:var(--bm)}
 
 /* 엑셀 업로드 초기화 버튼 */
 .reset-up{display:none;margin-top:8px;text-align:center}
@@ -271,8 +271,7 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
     <button class="copy-all" id="copy-all-btn" onclick="copyAllNames()">📋 초대 목록 전체 복사</button>
 
     <div class="auto-btns">
-      <button class="auto-btn auto-btn-guide" onclick="runViaHelper()" style="background:linear-gradient(135deg,#FEE500,#FFD700);color:var(--brown);box-shadow:0 3px 10px rgba(254,229,0,.4)">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
-      <button class="auto-btn auto-btn-ahk" onclick="downloadAHK()">📥 AHK 다운로드<br><span style="font-size:10px;font-weight:500;opacity:.8">(설치 안 했으면)</span></button>
+      <button class="auto-btn auto-btn-guide" onclick="runViaHelper()">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
     </div>
 
     <div style="margin-top:10px;text-align:center">
@@ -282,7 +281,7 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
     <div class="notice">
       💡 <strong>이름 검색 우선순위</strong>: 인원명부(직급 자동) → 엑셀 이름 그대로<br>
       📇 <strong>인원명부 탭</strong>에서 구글 시트 데이터를 한 번 동기화하면 검색 정확도가 올라갑니다.<br>
-      🚀 <strong>초대 가이드</strong> / 📥 <strong>AutoHotkey F9</strong> 로 자동화 실행.
+      🚀 <strong>즉시 실행</strong> 버튼으로 자동화를 시작합니다.
     </div>
   </div>
 
@@ -603,6 +602,33 @@ function buildFinalResult(){
       row.appendChild(cb);
       var rb=document.createElement('span'); rb.className='rb rb-'+(m.isFixed?'고정':m.role); rb.textContent=m.isFixed?'고정':m.role;
       var kn=document.createElement('span'); kn.className='m-kakao'; kn.textContent=m.kakaoName;
+      // 이름 클릭하면 "이름 직급" 복사
+      // fromRoster=true이면 kakaoName이 이미 "이름 직급" 형태라 그대로 사용 (중복 방지)
+      // 고정 멤버는 note가 있으면 직급으로 사용
+      // 일반 멤버 + 명부 미등록은 role을 직급으로 사용
+      (function(){
+        var copyStr;
+        if(m.isFixed){
+          copyStr = m.note ? m.kakaoName+' '+m.note : m.kakaoName;
+        } else if(m.fromRoster){
+          copyStr = m.kakaoName; // 이미 직급 포함
+        } else {
+          copyStr = m.role ? m.kakaoName+' '+m.role : m.kakaoName;
+        }
+        var origName = m.kakaoName;
+        kn.title = '클릭하면 "'+copyStr+'" 복사';
+        kn.onclick = function(e){
+          e.stopPropagation(); // 행 토글 방지
+          copyText(copyStr, function(){
+            kn.classList.add('copied');
+            kn.textContent = '✓ 복사됨';
+            setTimeout(function(){
+              kn.classList.remove('copied');
+              kn.textContent = origName;
+            }, 1200);
+          });
+        };
+      })();
       row.appendChild(rb); row.appendChild(kn);
       if(m.mapped&&m.excelName!==m.kakaoName){
         var orig=document.createElement('span'); orig.className='m-orig'; orig.textContent='(매핑됨)';
@@ -1255,7 +1281,7 @@ function showToast(msg){
 // ═══ AUTOMATION: 도우미 모드 (클립보드 핸드오프) ═══════════════
 // 도우미 AHK가 화면 오른쪽 아래 시계 옆에서 대기하다가 F9 누르면 클립보드 데이터 읽어 자동화 실행
 
-// 안전/수동 멤버 분리 (downloadAHK과 동일 로직 공유)
+// 안전/수동 멤버 분리
 function splitMembersForAutomation(){
   var fixed = loadFixed();
   var safeNames = [], manualNames = [];
@@ -1316,7 +1342,7 @@ function runViaHelper(){
   document.body.removeChild(ta);
 
   if(!copied){
-    showToast('클립보드 복사 실패 — 대안: AHK 다운로드 사용하세요');
+    showToast('클립보드 복사 실패 — 잠시 후 다시 시도해주세요');
     return;
   }
 
@@ -1609,7 +1635,7 @@ function downloadHelperAHK(){
   lines.push(';   환영 메시지는 클립보드에 복사된 상태로 종료 (자동 전송 X)');
   lines.push('; ════════════════════════════════════════════════════════');
   lines.push('ShowFinalSummary(groupName, manualNames) {');
-  lines.push('    welcomeMsg := "안녕하세요, " . groupName . " 단톡방입니다."');
+  lines.push('    welcomeMsg := "안녕하세요, 홈체크입니다.`n" . groupName . " 단톡방입니다."');
   lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
   lines.push('    if (manualNames.Length > 0) {');
   lines.push('        namesList := ""');
@@ -1878,467 +1904,6 @@ function closeHelperSetup(){
   if(m) m.classList.remove('on');
 }
 
-// ═══ AUTOMATION: AutoHotkey 스크립트 다운로드 (기존 — 1회용) ════
-function downloadAHK(){
-  var fixed = loadFixed();
-  var groupName = document.getElementById('res-name').textContent;
-
-  // 안전한 멤버 (자동화 가능) vs 수동 추가 필요한 멤버 분리
-  // 안전: 고정멤버 + 명부에서 자동 검색 + 영문 접미사 있어 검색 안정적인 사람
-  // 수동: 명부에 없고 순수 한글이라 검색 결과가 동명이인일 위험이 있는 사람 (⚠️)
-  var safeNames = [];
-  var manualNames = [];
-  var seen = {};
-  fixed.forEach(function(f){
-    if(!seen[f.kakaoName]){ seen[f.kakaoName]=true; safeNames.push(f.kakaoName); }
-  });
-  resolvedMembers.forEach(function(p){
-    if(seen[p.kakaoName]) return;
-    seen[p.kakaoName] = true;
-    if(p.needsCheck){
-      manualNames.push(p.kakaoName);
-    } else {
-      safeNames.push(p.kakaoName);
-    }
-  });
-
-  if(safeNames.length === 0){
-    showToast('자동화 가능한 멤버가 없습니다');
-    return;
-  }
-
-  // Escape for AHK v2 string literal: ` first, then "
-  function ahkEsc(s){
-    return String(s).replace(/`/g, '``').replace(/"/g, '`"');
-  }
-
-  // 데이터 분리: initial (고정 상위 2명) / additional (나머지) / manual
-  var INITIAL_COUNT = 2;
-  var fixedKakaoNames = fixed.map(function(f){return f.kakaoName;});
-  var initialNames = fixedKakaoNames.slice(0, INITIAL_COUNT);
-  var additionalNames = safeNames.filter(function(n){return initialNames.indexOf(n) === -1;});
-
-  if(initialNames.length < 2){
-    showToast('고정멤버를 최소 2명 등록해야 합니다 (단톡방 생성용)');
-    return;
-  }
-
-  // Build the AHK v2 script
-  var lines = [];
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; 카카오톡 단톡방 완전 자동 생성 스크립트 (AutoHotkey v2)');
-  lines.push('; 단톡방 이름: ' + groupName);
-  lines.push('; 초기 2명 (고정 상위) + Ctrl+I로 추가 ' + additionalNames.length + '명');
-  if(manualNames.length > 0){
-    lines.push('; 수동 추가 필요: ' + manualNames.length + '명 (명부 없음 — 정확도 위해 자동 제외)');
-  }
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; [필요한 프로그램]');
-  lines.push(';   AutoHotkey v2.0 (https://www.autohotkey.com/ 에서 다운로드 후 설치)');
-  lines.push(';');
-  lines.push('; [사용 방법]');
-  lines.push(';   1. 이 파일을 더블클릭해서 실행');
-  lines.push(';   2. 카카오톡이 켜져 있는 상태에서');
-  lines.push(';   3. F9 키를 누르면 자동으로 새 채팅창 열고 끝까지 진행');
-  lines.push(';');
-  lines.push('; [단축키]');
-  lines.push(';   F9       : 전체 자동 (초기 2명 + 단톡방 생성 + Ctrl+I로 추가 + 환영 메시지 클립보드)');
-  lines.push(';   Ctrl+F12 : 중간에 멈추기');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('');
-  lines.push('#Requires AutoHotkey v2.0');
-  lines.push('#SingleInstance Force');
-  lines.push('');
-  lines.push('; ★ 중요: Click과 WinGetPos가 같은 좌표계 사용하도록 명시');
-  lines.push('CoordMode "Mouse", "Screen"');
-  lines.push('');
-  lines.push('; ── 데이터 ──');
-  lines.push('initialNames := []');
-  initialNames.forEach(function(n){
-    lines.push('initialNames.Push("' + ahkEsc(n) + '")');
-  });
-  lines.push('');
-  lines.push('additionalNames := []');
-  additionalNames.forEach(function(n){
-    lines.push('additionalNames.Push("' + ahkEsc(n) + '")');
-  });
-  lines.push('');
-  lines.push('manualNames := []');
-  manualNames.forEach(function(n){
-    lines.push('manualNames.Push("' + ahkEsc(n) + '")');
-  });
-  lines.push('');
-  lines.push('groupName := "' + ahkEsc(groupName) + '"');
-  lines.push('');
-  lines.push('; ── 타이밍 (느리면 늘리기) ──');
-  lines.push('DELAY_AFTER_PASTE := 400');
-  lines.push('DELAY_AFTER_KEY := 100');
-  lines.push('DELAY_CONFIRM_TO_NAME := 1000');
-  lines.push('DELAY_AFTER_ROOM_CREATE := 2500');
-  lines.push('DELAY_AFTER_INVITE := 1500');
-  lines.push('DELAY_AFTER_CONFIRM := 1200');
-  lines.push('');
-  lines.push('; 시작 안내');
-  var manualNoticeForStart = manualNames.length > 0
-    ? '`n`n⚠ ' + manualNames.length + '명은 명부에 없어서 자동으로 못 넣어요.`n   끝나면 그 명단을 알려드릴 테니 직접 추가하시면 됩니다.'
-    : '';
-  lines.push('MsgBox("준비됐어요!`n`n카카오톡이 켜져 있는 상태에서 F9 누르면 자동으로 진행됩니다:`n  • 초기 " . initialNames.Length . "명으로 단톡방 생성 + 이름 설정`n  • 나머지 " . additionalNames.Length . "명 Ctrl+I로 1명씩 초대`n  • 환영 메시지는 클립보드에 복사 (자동 전송 X — 직접 Ctrl+V로 붙여넣기)' + manualNoticeForStart + '", "준비 완료", 64)');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; 초기 멤버 추가 — 사용자 검증 시퀀스');
-  lines.push(';   1~N-1번째: Tab×2+Down+Space+Tab×4+Enter (X로 검색 비움)');
-  lines.push(';   N번째 (마지막): Tab×2+Down+Space+Tab×1+Enter (확인)');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('AddMember(memberName, isLast) {');
-  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_CONFIRM_TO_NAME');
-  lines.push('    ; 검색칸은 자동 포커스 상태 (Ctrl+N 직후 또는 X 클리어 후)');
-  lines.push('    A_Clipboard := memberName');
-  lines.push('    Sleep(200)');
-  lines.push('    Send("^v")');
-  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)');
-  lines.push('    Send("{Tab 2}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
-  lines.push('    Send("{Down}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
-  lines.push('    Send("{Space}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
-  lines.push('    if (isLast) {');
-  lines.push('        Send("{Tab}")           ; Tab×1 → 확인 버튼');
-  lines.push('        Sleep(DELAY_AFTER_KEY)');
-  lines.push('        Send("{Enter}")');
-  lines.push('        Sleep(DELAY_CONFIRM_TO_NAME)');
-  lines.push('    } else {');
-  lines.push('        Send("{Tab 4}")         ; Tab×4 → X 클리어 버튼');
-  lines.push('        Sleep(DELAY_AFTER_KEY)');
-  lines.push('        Send("{Enter}")');
-  lines.push('        Sleep(400)');
-  lines.push('    }');
-  lines.push('    return true');
-  lines.push('}');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; 단톡방 이름 입력 + 확인');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('SetGroupName(groupName) {');
-  lines.push('    A_Clipboard := groupName');
-  lines.push('    Sleep(300)');
-  lines.push('    Send("^v")');
-  lines.push('    Sleep(500)  ; 페이스트 반영 대기');
-  lines.push('    Send("{Tab}")');
-  lines.push('    Sleep(300)');
-  lines.push('    Send("{Enter}")');
-  lines.push('    Sleep(1500) ; 단톡방 생성 + 채팅창 뜨는 시간');
-  lines.push('}');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; (검사 없음 — 사용자 스펙대로 무조건 12단계 그대로 진행)');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; Ctrl+I로 단톡방에 1명씩 초대');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('InviteOneViaCtrlI(memberName) {');
-  lines.push('    global DELAY_AFTER_PASTE, DELAY_AFTER_KEY, DELAY_AFTER_INVITE, DELAY_AFTER_CONFIRM');
-  lines.push('    chatWinsBefore := WinGetList("ahk_exe KakaoTalk.exe")');
-  lines.push('    beforeMap := Map()');
-  lines.push('    for h in chatWinsBefore');
-  lines.push('        beforeMap[h] := true');
-  lines.push('    SendInput("^i")');
-  lines.push('    Sleep(DELAY_AFTER_INVITE)');
-  lines.push('    inviteHwnd := 0');
-  lines.push('    for h in WinGetList("ahk_exe KakaoTalk.exe") {');
-  lines.push('        if !beforeMap.Has(h) {');
-  lines.push('            inviteHwnd := h');
-  lines.push('            break');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    if (inviteHwnd = 0) {');
-  lines.push('        Sleep(700)');
-  lines.push('        SendInput("^i")');
-  lines.push('        Sleep(DELAY_AFTER_INVITE)');
-  lines.push('        for h in WinGetList("ahk_exe KakaoTalk.exe") {');
-  lines.push('            if !beforeMap.Has(h) {');
-  lines.push('                inviteHwnd := h');
-  lines.push('                break');
-  lines.push('            }');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    if (inviteHwnd = 0)');
-  lines.push('        return false');
-  lines.push('    WinActivate("ahk_id " . inviteHwnd)');
-  lines.push('    Sleep(500)');
-  lines.push('    A_Clipboard := memberName');
-  lines.push('    Sleep(200)');
-  lines.push('    Send("^v")');
-  lines.push('    Sleep(DELAY_AFTER_PASTE + 200)');
-  lines.push('    Send("{Tab 2}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
-  lines.push('    Send("{Down}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
-  lines.push('    Send("{Space}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 200)');
-  lines.push('    Send("{Tab}")');
-  lines.push('    Sleep(DELAY_AFTER_KEY + 50)');
-  lines.push('    Send("{Enter}")');
-  lines.push('    Sleep(DELAY_AFTER_CONFIRM)');
-  lines.push('    return true');
-  lines.push('}');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; 진행 상황 GUI (1회용)');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('global progGui := ""');
-  lines.push('global progBar := ""');
-  lines.push('global progCount := ""');
-  lines.push('global progCurrent := ""');
-  lines.push('');
-  lines.push('InitProgressGui(total) {');
-  lines.push('    global progGui, progBar, progCount, progCurrent');
-  lines.push('    if (progGui != "") {');
-  lines.push('        try progGui.Destroy()');
-  lines.push('        progGui := ""');
-  lines.push('    }');
-  lines.push('    progGui := Gui("+AlwaysOnTop +ToolWindow -SysMenu", "단톡방 자동 초대 진행")');
-  lines.push('    progGui.MarginX := 14');
-  lines.push('    progGui.MarginY := 12');
-  lines.push('    progGui.BackColor := "FEE500"');
-  lines.push('    progGui.SetFont("s10 w700", "Malgun Gothic")');
-  lines.push('    progGui.AddText("w320 c3C1E1E", "📊 단톡방 자동 초대 진행")');
-  lines.push('    progBar := progGui.AddProgress("w320 h22 Range0-" . total . " cGreen Background3C1E1E", 0)');
-  lines.push('    progGui.SetFont("s12 w800", "Malgun Gothic")');
-  lines.push('    progCount := progGui.AddText("w320 c3C1E1E", "0 / " . total . " 명")');
-  lines.push('    progGui.SetFont("s9 w500", "Malgun Gothic")');
-  lines.push('    progCurrent := progGui.AddText("w320 c5C4A3A", "준비 중...")');
-  lines.push('    progGui.SetFont("s8 w400", "Malgun Gothic")');
-  lines.push('    progGui.AddText("w320 c9E8878", "끝나면 자동으로 닫힙니다. (Ctrl+F12로 중단)")');
-  lines.push('    progGui.Show("x" . (A_ScreenWidth - 380) . " y10 NoActivate")');
-  lines.push('}');
-  lines.push('');
-  lines.push('UpdateProgress(idx, total, name) {');
-  lines.push('    global progBar, progCount, progCurrent');
-  lines.push('    if (progBar = "")');
-  lines.push('        return');
-  lines.push('    try {');
-  lines.push('        progBar.Value := idx');
-  lines.push('        progCount.Value := idx . " / " . total . " 명"');
-  lines.push('        progCurrent.Value := name');
-  lines.push('    } catch {');
-  lines.push('    }');
-  lines.push('}');
-  lines.push('');
-  lines.push('CloseProgressGui() {');
-  lines.push('    global progGui, progBar, progCount, progCurrent');
-  lines.push('    if (progGui != "") {');
-  lines.push('        try progGui.Destroy()');
-  lines.push('        progGui := ""');
-  lines.push('        progBar := ""');
-  lines.push('        progCount := ""');
-  lines.push('        progCurrent := ""');
-  lines.push('    }');
-  lines.push('}');
-  lines.push('');
-  lines.push('ShowFinalSummary() {');
-  lines.push('    global manualNames, groupName');
-  lines.push('    welcomeMsg := "안녕하세요, " . groupName . " 단톡방입니다."');
-  lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
-  lines.push('    if (manualNames.Length > 0) {');
-  lines.push('        namesList := ""');
-  lines.push('        for n in manualNames');
-  lines.push('            namesList .= "  • " . n . "`n"');
-  lines.push('        msg .= "`n[수동으로 추가할 분 " . manualNames.Length . "명]`n" . namesList');
-  lines.push('        msg .= "`n👉 단톡방 메뉴(≡) → 대화상대 초대로 직접 추가하세요.`n"');
-  lines.push('    }');
-  lines.push('    msg .= "`n━━━━━━━━━━━━━━━━━━━━`n"');
-  lines.push('    msg .= "[환영 메시지 클립보드 복사 완료]`n"');
-  lines.push('    msg .= welcomeMsg . "`n"');
-  lines.push('    msg .= "`n👉 단톡방 채팅창 클릭 → Ctrl+V → Enter로 전송하시면 됩니다."');
-  lines.push('    A_Clipboard := welcomeMsg');
-  lines.push('    MsgBox(msg, "완료", 64)');
-  lines.push('}');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; F9 = 전체 자동');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('F9:: {');
-  lines.push('    global initialNames, additionalNames, manualNames, groupName');
-  lines.push('    if !WinExist("ahk_exe KakaoTalk.exe") {');
-  lines.push('        MsgBox("카카오톡이 켜져 있지 않아요.`n카카오톡을 먼저 켜고 다시 F9를 눌러주세요.", "카카오톡 안 켜져 있음", 48)');
-  lines.push('        return');
-  lines.push('    }');
-  lines.push('    totalCount := initialNames.Length + additionalNames.Length');
-  lines.push('    result := MsgBox("총 " . totalCount . "명 초대.`n  • 초기 " . initialNames.Length . "명: 단톡방 생성 + 이름 설정`n  • 나머지 " . additionalNames.Length . "명: Ctrl+I로 1명씩`n  • 환영 메시지는 클립보드에 복사 (자동 전송 X)`n`n[확인] 누르면 3초 후 자동 진행.`n도중 멈추려면 Ctrl+F12.", "자동 초대 시작", 0x21)');
-  lines.push('    if (result != "OK")');
-  lines.push('        return');
-  lines.push('    Loop 3 {');
-  lines.push('        ToolTip((4 - A_Index) . "초 후 시작...")');
-  lines.push('        Sleep(1000)');
-  lines.push('    }');
-  lines.push('    ; ── 1단계: 카카오톡 메인 창 찾기 ──');
-  lines.push('    mainHwnd := 0');
-  lines.push('    diagInfo := ""');
-  lines.push('    kakaoWins := WinGetList("ahk_exe KakaoTalk.exe")');
-  lines.push('    beforeMap := Map()');
-  lines.push('    for hwnd in kakaoWins {');
-  lines.push('        beforeMap[hwnd] := true');
-  lines.push('        t := WinGetTitle("ahk_id " . hwnd)');
-  lines.push('        diagInfo .= "  • " . hwnd . " 제목=`"" . t . "`"`n"');
-  lines.push('        if (mainHwnd = 0 and InStr(t, "카카오톡"))');
-  lines.push('            mainHwnd := hwnd');
-  lines.push('    }');
-  lines.push('    if (mainHwnd = 0) {');
-  lines.push('        for hwnd in kakaoWins {');
-  lines.push('            if (WinGetTitle("ahk_id " . hwnd) != "") {');
-  lines.push('                mainHwnd := hwnd');
-  lines.push('                break');
-  lines.push('            }');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    if (mainHwnd = 0 and kakaoWins.Length > 0)');
-  lines.push('        mainHwnd := kakaoWins[1]');
-  lines.push('    if (mainHwnd = 0) {');
-  lines.push('        ToolTip()');
-  lines.push('        MsgBox("카카오톡 창을 찾을 수 없습니다.", "오류", 16)');
-  lines.push('        return');
-  lines.push('    }');
-  lines.push('    WinActivate("ahk_id " . mainHwnd)');
-  lines.push('    WinWaitActive("ahk_id " . mainHwnd, , 3)');
-  lines.push('    Sleep(500)');
-  lines.push('    if !WinActive("ahk_id " . mainHwnd) {');
-  lines.push('        ToolTip()');
-  lines.push('        MsgBox("[1단계 실패] 카카오톡 메인 창을 활성화할 수 없습니다.`n발견 창:`n" . diagInfo, "활성화 실패", 48)');
-  lines.push('        return');
-  lines.push('    }');
-  lines.push('    ; ── 2단계: Ctrl+N + 새 hwnd 탐색 ──');
-  lines.push('    ToolTip("[2/3] Ctrl+N으로 새 채팅창 여는 중...")');
-  lines.push('    Sleep(300)');
-  lines.push('    SendInput("^n")');
-  lines.push('    Sleep(1500)');
-  lines.push('    dialogHwnd := 0');
-  lines.push('    afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
-  lines.push('    for h in afterWins {');
-  lines.push('        if !beforeMap.Has(h) {');
-  lines.push('            dialogHwnd := h');
-  lines.push('            break');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    if (dialogHwnd = 0) {');
-  lines.push('        Sleep(700)');
-  lines.push('        SendInput("^n")');
-  lines.push('        Sleep(1500)');
-  lines.push('        afterWins := WinGetList("ahk_exe KakaoTalk.exe")');
-  lines.push('        for h in afterWins {');
-  lines.push('            if !beforeMap.Has(h) {');
-  lines.push('                dialogHwnd := h');
-  lines.push('                break');
-  lines.push('            }');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    if (dialogHwnd = 0) {');
-  lines.push('        ToolTip()');
-  lines.push('        MsgBox("[2단계 실패] Ctrl+N 후 새 채팅창이 안 생겼어요.`n해결: 한/영 키를 영문 모드로 또는 직접 Ctrl+N으로 새 채팅창 연 뒤 F9 재실행.", "새 창 안 뜸", 48)');
-  lines.push('        return');
-  lines.push('    }');
-  lines.push('    WinActivate("ahk_id " . dialogHwnd)');
-  lines.push('    Sleep(500)');
-  lines.push('    ToolTip("[3/3] 새 채팅창 활성화. 초기 " . initialNames.Length . "명 추가 중...")');
-  lines.push('    Sleep(300)');
-  lines.push('    ; ── 진행 GUI 초기화 ──');
-  lines.push('    totalProg := initialNames.Length + additionalNames.Length');
-  lines.push('    InitProgressGui(totalProg)');
-  lines.push('    progIdx := 0');
-  lines.push('    invitedMembers := []  ; 실제로 성공한 멤버만 추적 (안전망 신호용)');
-  lines.push('    ; ── 초기 멤버 추가 ──');
-  lines.push('    Loop initialNames.Length {');
-  lines.push('        currentName := initialNames[A_Index]');
-  lines.push('        isLast := (A_Index = initialNames.Length)');
-  lines.push('        ToolTip("[초기 " . A_Index . "/" . initialNames.Length . "] " . currentName . (isLast ? " (마지막)" : ""))');
-  lines.push('        UpdateProgress(progIdx, totalProg, "초대 중: " . currentName)');
-  lines.push('        if !AddMember(currentName, isLast) {');
-  lines.push('            ToolTip()');
-  lines.push('            CloseProgressGui()');
-  lines.push('            MsgBox("초기 멤버 " . currentName . " 추가 중 활성 창이 사라졌어요. 중단합니다.", "중단", 16)');
-  lines.push('            return');
-  lines.push('        }');
-  lines.push('        progIdx++');
-  lines.push('        invitedMembers.Push(currentName)');
-  lines.push('        UpdateProgress(progIdx, totalProg, "✓ " . currentName . " 추가됨")');
-  lines.push('        ; ── 진행 신호 ──');
-  lines.push('        A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
-  lines.push('        Sleep(150)');
-  lines.push('    }');
-  lines.push('    ; ── 8단계: SetGroupName (사용자 스펙 8번) — 무조건 실행 ──');
-  lines.push('    ToolTip("단톡방 이름 입력 (1차)...")');
-  lines.push('    UpdateProgress(progIdx, totalProg, "단톡방 이름 설정 중...")');
-  lines.push('    Sleep(200)');
-  lines.push('    SetGroupName(groupName)');
-  lines.push('    ; ── 9단계: SetGroupName 한 번 더 (사용자 스펙 9번) — 무조건 실행 ──');
-  lines.push('    ToolTip("단톡방 이름 입력 (2차)...")');
-  lines.push('    Sleep(500)');
-  lines.push('    SetGroupName(groupName)');
-  lines.push('    ; ── 단톡방 채팅창 안정화 대기 ──');
-  lines.push('    ToolTip("단톡방 채팅창 안정화 대기...")');
-  lines.push('    UpdateProgress(progIdx, totalProg, "채팅창 준비 대기...")');
-  lines.push('    Sleep(DELAY_AFTER_ROOM_CREATE)');
-  lines.push('    ; ── 10단계: 나머지 멤버 Ctrl+I로 1명씩 추가 ──');
-  lines.push('    if (additionalNames.Length > 0) {');
-  lines.push('        Loop additionalNames.Length {');
-  lines.push('            currentName := additionalNames[A_Index]');
-  lines.push('            ToolTip("[추가 " . A_Index . "/" . additionalNames.Length . "] " . currentName . " 초대 중 (Ctrl+I)")');
-  lines.push('            UpdateProgress(progIdx, totalProg, "초대 중: " . currentName)');
-  lines.push('            if !InviteOneViaCtrlI(currentName) {');
-  lines.push('                ToolTip()');
-  lines.push('                CloseProgressGui()');
-  lines.push('                MsgBox("추가 멤버 " . currentName . " 초대 실패. 나머지는 직접 추가해주세요.", "일부 실패", 48)');
-  lines.push('                Break');
-  lines.push('            }');
-  lines.push('            progIdx++');
-  lines.push('            invitedMembers.Push(currentName)');
-  lines.push('            UpdateProgress(progIdx, totalProg, "✓ " . currentName . " 초대됨")');
-  lines.push('            ; ── 진행 신호 ──');
-  lines.push('            A_Clipboard := "[KAKAOBOT_PROG]`n" . groupName . "`n" . currentName');
-  lines.push('            Sleep(150)');
-  lines.push('        }');
-  lines.push('    }');
-  lines.push('    ; ── 안전망: 실제 성공한 멤버 명단만 한 번에 보냄 ──');
-  lines.push('    ; 실패한 멤버는 invitedMembers에 없으므로 자동 체크 안 됨.');
-  lines.push('    ToolTip("진행 상황 동기화 중...")');
-  lines.push('    UpdateProgress(invitedMembers.Length, totalProg, "완료! 명단 동기화 중...")');
-  lines.push('    doneClip := "[KAKAOBOT_DONE]`n" . groupName');
-  lines.push('    for n in invitedMembers');
-  lines.push('        doneClip .= "`n" . n');
-  lines.push('    A_Clipboard := doneClip');
-  lines.push('    Sleep(700)');
-  lines.push('    ; ── 11+12단계: 수동 멤버 안내 + 환영 메시지 클립보드 복사 ──');
-  lines.push('    ToolTip()');
-  lines.push('    UpdateProgress(invitedMembers.Length, totalProg, "✓ " . invitedMembers.Length . " / " . totalProg . " 명 완료")');
-  lines.push('    Sleep(1200)');
-  lines.push('    CloseProgressGui()');
-  lines.push('    ShowFinalSummary()');
-  lines.push('}');
-  lines.push('');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('; Ctrl+F12 = 종료');
-  lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('^F12:: {');
-  lines.push('    CloseProgressGui()');
-  lines.push('    ExitApp()');
-  lines.push('}');
-  lines.push('');
-
-  var content = '\uFEFF' + lines.join('\r\n'); // BOM + CRLF
-  var blob = new Blob([content], {type:'text/plain;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  var safeName = groupName.replace(/[\/\\:*?"<>|]/g, '_');
-  a.href = url; a.download = '카카오톡_자동초대_' + safeName + '.ahk';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  var msg = manualNames.length > 0
-    ? 'AHK 다운로드 완료 — 자동 ' + safeNames.length + '명, 수동 추가 필요 ' + manualNames.length + '명'
-    : 'AHK 스크립트 다운로드됨 — AutoHotkey v2 설치 후 실행하세요';
-  showToast(msg);
-}
 
 // ═══ INIT ════════════════════════════════════════════════════════
 renderRoster();
