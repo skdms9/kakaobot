@@ -213,6 +213,14 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .ws-btn.active{background:var(--yellow);border-color:var(--yd);color:var(--brown);box-shadow:0 1px 4px rgba(254,229,0,.4)}
 .ws-btn:hover:not(.active){background:#FAF7F2}
 
+/* 투표 자동 생성 옵션 */
+.vote-opt{display:flex;align-items:center;gap:9px;padding:11px 13px;background:#FAF7F2;border:1.5px solid var(--border);border-radius:9px;margin-top:10px;cursor:pointer;user-select:none;transition:all .15s}
+.vote-opt:hover{background:#FFF8E1}
+.vote-opt.on{background:#FFFDE0;border-color:var(--yd)}
+.vote-opt input[type="checkbox"]{width:18px;height:18px;cursor:pointer;accent-color:var(--yd);margin:0;flex-shrink:0}
+.vote-opt-text{font-size:12.5px;font-weight:700;color:var(--brown)}
+.vote-opt-desc{font-size:11px;color:var(--text2);margin-left:2px}
+
 /* 멤버 섹션 접기 토글 */
 .member-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:#FAF7F2;border:1.5px solid var(--border);border-radius:9px;font-size:12px;font-weight:700;color:var(--brown);cursor:pointer;margin-bottom:8px;transition:background .15s;user-select:none}
 .member-toggle:hover{background:#FFF8E1}
@@ -320,6 +328,12 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
     </div>
 
     <button class="copy-all" id="copy-all-btn" onclick="copyAllNames()">📋 초대 목록 전체 복사</button>
+
+    <label class="vote-opt" id="vote-opt-wrap">
+      <input type="checkbox" id="vote-toggle" onchange="setVoteEnabled(this.checked)">
+      <span class="vote-opt-text">🗳 교통수단 투표 자동 생성</span>
+      <span class="vote-opt-desc">메시지 전송 후 단톡방에 투표 만들기</span>
+    </label>
 
     <div class="auto-btns">
       <button class="auto-btn auto-btn-guide" onclick="runViaHelper()">🚀 즉시 실행<br><span style="font-size:10px;font-weight:500;opacity:.8">(도우미 설치 후 클릭만)</span></button>
@@ -1796,19 +1810,33 @@ function splitMembersForAutomation(){
 }
 
 // 클립보드 페이로드 생성: v3 — 초기/추가/수동 세 섹션
-function buildClipboardPayload(groupName, initialNames, additionalNames, manualNames, welcomeMsg){
+function buildClipboardPayload(groupName, initialNames, additionalNames, manualNames, welcomeMsg, voteEnabled){
   var parts = ['[KAKAOBOT_v3]', groupName];
   initialNames.forEach(function(n){ parts.push(n); });
   parts.push('---ADDITIONAL---');
   additionalNames.forEach(function(n){ parts.push(n); });
   parts.push('---MANUAL---');
   manualNames.forEach(function(n){ parts.push(n); });
+  // 투표 진행 여부 (ON일 때만 섹션 추가, OFF면 옛 헬퍼와 호환되도록 생략)
+  if (voteEnabled) {
+    parts.push('---VOTE---');
+    parts.push('true');
+  }
   // 환영 메시지 (있으면 페이로드 마지막에 — 멀티라인이라 끝에 두는 게 안전)
   if (welcomeMsg && welcomeMsg.trim()) {
     parts.push('---WELCOME---');
     parts.push(welcomeMsg);
   }
   return parts.join('\n');
+}
+
+// 투표 자동 생성 옵션 (localStorage)
+function loadVoteEnabled(){ return localStorage.getItem('kakao_vote_enabled') === 'true'; }
+function saveVoteEnabled(v){ localStorage.setItem('kakao_vote_enabled', v ? 'true' : 'false'); }
+function setVoteEnabled(enabled){
+  saveVoteEnabled(!!enabled);
+  var wrap = document.getElementById('vote-opt-wrap');
+  if(wrap) wrap.classList.toggle('on', !!enabled);
 }
 
 function runViaHelper(){
@@ -1819,7 +1847,8 @@ function runViaHelper(){
     return;
   }
   var welcomeMsg = (document.getElementById('welcome-msg') ? document.getElementById('welcome-msg').value : '') || '';
-  var payload = buildClipboardPayload(groupName, split.initialNames, split.additionalNames, split.manualNames, welcomeMsg);
+  var voteEnabled = loadVoteEnabled();
+  var payload = buildClipboardPayload(groupName, split.initialNames, split.additionalNames, split.manualNames, welcomeMsg, voteEnabled);
 
   // 클립보드 복사
   var ta = document.createElement('textarea');
@@ -1909,7 +1938,7 @@ function downloadHelperAHK(){
   lines.push('DELAY_AFTER_INVITE := 1500        ; Ctrl+I 후 초대창 뜨는 시간');
   lines.push('DELAY_AFTER_CONFIRM := 1200       ; 확인 누른 뒤 창 닫힘 시간');
   lines.push('');
-  lines.push('; 클립보드 데이터 파싱 (v3: initial / additional / manual / welcome 네 섹션)');
+  lines.push('; 클립보드 데이터 파싱 (v3: initial / additional / manual / vote / welcome 섹션)');
   lines.push('ParseClipboard() {');
   lines.push('    raw := A_Clipboard');
   lines.push('    lines := StrSplit(raw, "`n", "`r")');
@@ -1921,6 +1950,7 @@ function downloadHelperAHK(){
   lines.push('    data["additionalNames"] := []');
   lines.push('    data["manualNames"] := []');
   lines.push('    data["welcomeMessage"] := ""');
+  lines.push('    data["vote"] := false');
   lines.push('    section := "initial"');
   lines.push('    welcomeMessage := ""');
   lines.push('    Loop lines.Length - 2 {');
@@ -1944,8 +1974,16 @@ function downloadHelperAHK(){
   lines.push('            section := "manual"');
   lines.push('            continue');
   lines.push('        }');
+  lines.push('        if (trimmed = "---VOTE---") {');
+  lines.push('            section := "vote"');
+  lines.push('            continue');
+  lines.push('        }');
   lines.push('        if (trimmed = "---WELCOME---") {');
   lines.push('            section := "welcome"');
+  lines.push('            continue');
+  lines.push('        }');
+  lines.push('        if (section = "vote") {');
+  lines.push('            data["vote"] := (trimmed = "true")');
   lines.push('            continue');
   lines.push('        }');
   lines.push('        if (section = "initial")');
@@ -2136,23 +2174,136 @@ function downloadHelperAHK(){
   lines.push('; 최종 완료 안내 — 수동 멤버 명단 + 환영 메시지 클립보드 복사');
   lines.push(';   환영 메시지는 클립보드에 복사된 상태로 종료 (자동 전송 X)');
   lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('ShowFinalSummary(groupName, manualNames, welcomeMessage) {');
+  lines.push('ShowFinalSummary(groupName, manualNames, welcomeMessage, voteEnabled) {');
   lines.push('    ; 페이로드에 환영 메시지가 있으면 그것 사용, 없으면 짧은 기본 메시지로 폴백');
   lines.push('    if (welcomeMessage = "")');
   lines.push('        welcomeMessage := "안녕하세요, 홈체크입니다.`n" . groupName . " 단톡방입니다."');
-  lines.push('    msg := "✓ 단톡방이 만들어졌습니다!`n"');
+  lines.push('    ');
+  lines.push('    ; ── 환영 메시지 자동 전송 ──');
+  lines.push('    ; 단톡방 채팅창에 포커스가 있다고 가정 (Ctrl+I 마지막 초대 직후 상태)');
+  lines.push('    A_Clipboard := welcomeMessage');
+  lines.push('    Sleep(400)  ; 클립보드 안정 대기');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(500)  ; 붙여넣기 완료 대기');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(800)  ; 메시지 전송 + UI 갱신 대기');
+  lines.push('    ');
+  lines.push('    ; ── 투표 자동 생성 (옵션) ──');
+  lines.push('    if (voteEnabled) {');
+  lines.push('        SendVotePoll()');
+  lines.push('    }');
+  lines.push('    ');
+  lines.push('    ; ── 완료 안내 ──');
+  lines.push('    msg := "✓ 단톡방 생성 + 환영 메시지 전송 완료!`n"');
+  lines.push('    if (voteEnabled)');
+  lines.push('        msg .= "✓ 교통수단 투표 생성 완료!`n"');
   lines.push('    if (manualNames.Length > 0) {');
   lines.push('        namesList := ""');
   lines.push('        for n in manualNames');
   lines.push('            namesList .= "  • " . n . "`n"');
   lines.push('        msg .= "`n[수동으로 추가할 분 " . manualNames.Length . "명]`n" . namesList');
-  lines.push('        msg .= "`n👉 단톡방 메뉴(≡) → 대화상대 초대로 직접 추가하세요.`n"');
+  lines.push('        msg .= "`n👉 단톡방 메뉴(≡) → 대화상대 초대로 직접 추가하세요."');
   lines.push('    }');
-  lines.push('    msg .= "`n━━━━━━━━━━━━━━━━━━━━`n"');
-  lines.push('    msg .= "[환영 메시지 클립보드 복사 완료]`n"');
-  lines.push('    msg .= "`n👉 단톡방 채팅창 클릭 → Ctrl+V → Enter로 전송하시면 됩니다."');
-  lines.push('    A_Clipboard := welcomeMessage  ; ★ 환영 메시지를 클립보드에 복사');
   lines.push('    MsgBox(msg, "완료", 64)');
+  lines.push('}');
+  lines.push('');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('; 투표 자동 생성 — 사용자가 지정한 단축키 시퀀스');
+  lines.push('; ════════════════════════════════════════════════════════');
+  lines.push('SendVotePoll() {');
+  lines.push('    DELAY_KEY := 120          ; 일반 키 입력 후 짧은 대기');
+  lines.push('    DELAY_PASTE := 350        ; 붙여넣기 후 카카오톡 처리 대기');
+  lines.push('    DELAY_DIALOG := 900       ; 다이얼로그 열림/닫힘 대기');
+  lines.push('    ');
+  lines.push('    ; 메뉴 진입: TAB키 10번 + 스페이스바');
+  lines.push('    SendInput("{Tab 10}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Space}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    ');
+  lines.push('    ; 아래 방향키 5번 + 엔터');
+  lines.push('    SendInput("{Down 5}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; TAB키 4번 + 엔터');
+  lines.push('    SendInput("{Tab 4}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; TAB키 1번 + 엔터');
+  lines.push('    SendInput("{Tab 1}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; 투표 제목 붙여넣기');
+  lines.push('    A_Clipboard := "집합장소까지의 교통수단"');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)');
+  lines.push('    ');
+  lines.push('    ; TAB키 1번 + 항목1');
+  lines.push('    SendInput("{Tab 1}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    A_Clipboard := "차량지원 가능"');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)');
+  lines.push('    ');
+  lines.push('    ; TAB키 2번 + 항목2');
+  lines.push('    SendInput("{Tab 2}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    A_Clipboard := "본인차량 이동"');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)');
+  lines.push('    ');
+  lines.push('    ; TAB키 2번 + 항목3');
+  lines.push('    SendInput("{Tab 2}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    A_Clipboard := "대중교통 이동"');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)');
+  lines.push('    ');
+  lines.push('    ; TAB키 2번 + 엔터');
+  lines.push('    SendInput("{Tab 2}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; ESC키 1번 + TAB키 1번 + 엔터');
+  lines.push('    SendInput("{Escape}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Tab 1}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; 항목4 붙여넣기');
+  lines.push('    A_Clipboard := "사무실차량 이동"');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)');
+  lines.push('    ');
+  lines.push('    ; TAB키 16번 + 엔터');
+  lines.push('    SendInput("{Tab 16}")');
+  lines.push('    Sleep(DELAY_KEY)');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(DELAY_DIALOG)');
+  lines.push('    ');
+  lines.push('    ; ── 투표 안내 메시지 자동 전송 ──');
+  lines.push('    ; 투표 다이얼로그 닫힌 뒤 채팅창 입력란에 포커스 돌아왔을 때 메시지 전송');
+  lines.push('    voteGuide := "집합장소까지`n본인 차량으로 오시는 분들은 `n\'본인차량 이동\'에 투표하시고, `n`n대중교통으로 오시는 경우에는 `n\'대중교통 이동\'에`n`n기흥 사무실에서 같이 출발하시는 경우에는`n\'사무실차량 이동\'에 투표해주시면 됩니다."');
+  lines.push('    A_Clipboard := voteGuide');
+  lines.push('    Sleep(DELAY_PASTE)  ; 클립보드 안정 대기');
+  lines.push('    SendInput("^v")');
+  lines.push('    Sleep(DELAY_PASTE)  ; 붙여넣기 완료 대기');
+  lines.push('    SendInput("{Enter}")');
+  lines.push('    Sleep(500)  ; 전송 완료 대기');
   lines.push('}');
   lines.push('');
   lines.push('F9:: {');
@@ -2351,7 +2502,7 @@ function downloadHelperAHK(){
   lines.push('    UpdateProgress(invitedMembers.Length, totalProg, "✓ " . invitedMembers.Length . " / " . totalProg . " 명 완료")');
   lines.push('    Sleep(1200)');
   lines.push('    CloseProgressGui()');
-  lines.push('    ShowFinalSummary(groupName, manualNames, data["welcomeMessage"])');
+  lines.push('    ShowFinalSummary(groupName, manualNames, data["welcomeMessage"], data["vote"])');
   lines.push('}');
   lines.push('');
   lines.push('^F12:: {');
@@ -2423,6 +2574,15 @@ autoSyncVenueOnLoad();
   document.querySelectorAll('.ws-btn').forEach(function(b){
     b.classList.toggle('active', b.getAttribute('data-style') === saved);
   });
+})();
+
+// 저장된 투표 자동 생성 옵션 적용
+(function initVoteOption(){
+  var enabled = loadVoteEnabled();
+  var cb = document.getElementById('vote-toggle');
+  if(cb) cb.checked = enabled;
+  var wrap = document.getElementById('vote-opt-wrap');
+  if(wrap) wrap.classList.toggle('on', enabled);
 })();
 
 // 맨 위로 이동 버튼 — 스크롤 300px 이상일 때만 표시
