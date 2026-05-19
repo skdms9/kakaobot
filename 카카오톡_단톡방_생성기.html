@@ -431,10 +431,10 @@ var curDate = '', curBldg = '';
 var resolvedMembers = [];
 
 // ═══ STORAGE ════════════════════════════════════════════════════
-function loadFixed(){ try{ return JSON.parse(localStorage.getItem('kakao_fixed')||'[]'); }catch(e){ return []; } }
+function loadFixed(){ try{ var v=JSON.parse(localStorage.getItem('kakao_fixed')||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function saveFixed(a){ localStorage.setItem('kakao_fixed',JSON.stringify(a)); }
 // roster format: [{name, title}] — title is locked at first add, never overwritten
-function loadRoster(){ try{ return JSON.parse(localStorage.getItem('kakao_roster')||'[]'); }catch(e){ return []; } }
+function loadRoster(){ try{ var v=JSON.parse(localStorage.getItem('kakao_roster')||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function saveRoster(a){ localStorage.setItem('kakao_roster',JSON.stringify(a)); }
 function rosterTitle(name){
   var r = loadRoster();
@@ -1300,15 +1300,19 @@ function clearRosterConfirm(){
 function loadVenueUrl(){ return localStorage.getItem('kakao_venue_url') || ''; }
 function saveVenueUrl(u){ localStorage.setItem('kakao_venue_url', u); }
 function clearVenueUrl(){ localStorage.removeItem('kakao_venue_url'); }
-function loadVenues(){ try{ return JSON.parse(localStorage.getItem('kakao_venues')||'[]'); }catch(e){ return []; } }
+function loadVenues(){ try{ var v=JSON.parse(localStorage.getItem('kakao_venues')||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
 function saveVenues(a){ localStorage.setItem('kakao_venues', JSON.stringify(a)); }
 function loadVenueSyncedAt(){ var v = localStorage.getItem('kakao_venue_synced_at'); return v ? parseInt(v, 10) : 0; }
 function saveVenueSyncedAt(t){ localStorage.setItem('kakao_venue_synced_at', String(t)); }
 
-// "2026-05-23(토)" → "2026-05-23", "2026/5/3" → "2026-05-03"
+// "2026-05-23(토)" → "2026-05-23", "2026/5/3" → "2026-05-03", "2026년 5월 29일" → "2026-05-29"
 function normalizeDate(s){
   if(!s) return '';
   s = String(s).trim();
+  // 한글 형식: "2026년 5월 29일"
+  var k = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if(k) return k[1] + '-' + ('0'+k[2]).slice(-2) + '-' + ('0'+k[3]).slice(-2);
+  // 일반 구분자: -, ., /
   var m = s.match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
   if(!m) return s;
   return m[1] + '-' + ('0'+m[2]).slice(-2) + '-' + ('0'+m[3]).slice(-2);
@@ -1482,13 +1486,27 @@ function findVenueMatch(date, bldg){
   return null;
 }
 
+// 환영 메시지에 쓸 날짜 형식: "2026년 5월 29일" → "2026-05-29(금)" (단톡방 이름과 일치)
+function formatDateForMessage(date){
+  var s = String(date||'').trim();
+  var m = s.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if(m){
+    var dow = ['일','월','화','수','목','금','토'];
+    var day = new Date(+m[1], +m[2]-1, +m[3]).getDay();
+    return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2)+'('+dow[day]+')';
+  }
+  // 이미 변환된 형식이면 그대로
+  return s;
+}
+
 // 환영 메시지 생성 (집합장소 매치 없으면 [입력 필요] 자리표시자)
 function buildWelcomeMessage(date, bldg, venue){
   function f(v){ return v ? v : '[입력 필요]'; }
+  var dateStr = formatDateForMessage(date);
   var lines = [];
   lines.push('안녕하세요, 홈체크입니다.');
   lines.push('');
-  lines.push(date);
+  lines.push(dateStr);
   lines.push(bldg);
   lines.push('단톡방입니다.');
   lines.push('');
