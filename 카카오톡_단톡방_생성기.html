@@ -91,9 +91,9 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .res-name-box{background:var(--brown);border-radius:12px;padding:15px 17px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .res-name-lbl{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:4px;letter-spacing:.06em}
 .res-name-val{font-size:15px;font-weight:700;color:var(--yellow);word-break:keep-all}
-.copybtn{flex-shrink:0;padding:8px 14px;background:var(--yellow);color:var(--brown);border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s}
-.copybtn:hover{background:var(--yd)}
-.copybtn.ok{background:#4CAF50;color:#fff}
+.copybtn{flex-shrink:0;padding:8px 14px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1.5px solid rgba(255,255,255,.25);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.copybtn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.4)}
+.copybtn.ok{background:#4CAF50;color:#fff;border-color:#4CAF50}
 .stat-row{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
 .stat{background:#FAF7F2;border:1.5px solid var(--border);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--text2);font-weight:600}
 .stat strong{font-size:16px;font-weight:800;color:var(--brown);display:block}
@@ -212,9 +212,9 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 .welcome-warn a{color:#1565C0;font-weight:700;cursor:pointer;text-decoration:underline}
 #welcome-msg{width:100%;min-height:230px;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;line-height:1.7;color:var(--text);background:#fff;resize:vertical;box-sizing:border-box}
 #welcome-msg:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,229,0,.2)}
-.welcome-copy{display:block;width:100%;margin-top:9px;padding:11px 14px;background:var(--yellow);color:var(--brown);border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s}
-.welcome-copy:hover{background:var(--yd);transform:translateY(-1px)}
-.welcome-copy.ok{background:#4CAF50;color:#fff}
+.welcome-copy{display:block;width:100%;margin-top:9px;padding:10px 14px;background:#fff;color:var(--text2);border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.welcome-copy:hover{background:#FAF7F2;border-color:#C8BFB1;color:var(--brown)}
+.welcome-copy.ok{background:#4CAF50;color:#fff;border-color:#4CAF50}
 
 /* 본사/대구 양식 토글 */
 .welcome-style-toggle{display:flex;gap:6px;margin-bottom:10px}
