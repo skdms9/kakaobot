@@ -27,9 +27,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh
 .hd h1{color:#fff;font-size:16px;font-weight:700}
 .hd p{color:rgba(255,255,255,.5);font-size:10px;margin-top:2px}
 .tabs{display:flex;background:var(--bm);border-bottom:2.5px solid var(--yellow)}
-.tab{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s}
+.tab{flex:1;padding:10px 6px;text-align:center;font-size:12.5px;font-weight:700;color:rgba(255,255,255,.55);cursor:pointer;border:none;background:none;font-family:inherit;transition:all .15s;letter-spacing:-.2px}
 .tab.on{color:var(--yellow);background:rgba(254,229,0,.07)}
-.tab-ic{font-size:16px;display:block;margin-bottom:2px}
+.tab-ic{width:14px;height:14px;display:block;margin:0 auto 3px;stroke:currentColor;opacity:.7;transition:opacity .15s}
+.tab.on .tab-ic{opacity:1}
 .wrap{max-width:640px;margin:0 auto;padding:15px 13px}
 .pane{display:none}.pane.on{display:block}
 .card{background:var(--card);border-radius:14px;padding:17px 17px;margin-bottom:13px;box-shadow:0 2px 10px rgba(60,30,30,.07);border:1.5px solid var(--border)}
@@ -37,6 +38,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);min-height:100vh
 .badge{background:linear-gradient(135deg,#FEE500 0%,#FFCC00 100%);color:#3C1E1E;font-size:14px;font-weight:900;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #FFB300;box-shadow:0 2px 6px rgba(254,229,0,.55)}
 /* 노란 배경(generate 버튼 등) 위에서 쓰는 dark 변형 */
 .badge-dark{background:linear-gradient(135deg,#3C1E1E 0%,#5D2E2E 100%);color:#FFE500;border-color:#3C1E1E;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* 양식 관리 탭 */
+.tpl-section{margin-bottom:18px;padding-top:14px;border-top:1.5px dashed var(--border)}
+.tpl-section:first-of-type{border-top:none;padding-top:0}
+.tpl-title{font-size:13px;font-weight:700;color:var(--brown);margin-bottom:8px}
+.tpl-ta{width:100%;box-sizing:border-box;padding:10px 12px;font-family:'D2Coding',Consolas,monospace;font-size:12px;color:var(--text);background:#fff;border:1.5px solid var(--border);border-radius:8px;resize:vertical;line-height:1.55;outline:none;transition:border-color .15s}
+.tpl-ta:focus{border-color:var(--yd)}
+.tpl-actions{display:flex;justify-content:space-between;align-items:center;margin-top:7px;gap:10px}
+.tpl-status{font-size:11px;color:#2D9E5F;font-weight:600}
+.tpl-status.saved{color:#2D9E5F}
+.tpl-status.modified{color:#D93025}
 
 /* 도움말 아이콘 버튼 */
 .help-btn{margin-left:auto;background:#FFF8E1;border:1.5px solid var(--yd);color:var(--brown);font-size:13px;font-weight:700;width:26px;height:26px;border-radius:50%;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:all .15s}
@@ -253,10 +265,11 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
 </div>
 
 <div class="tabs">
-  <button class="tab on" onclick="switchTab(0)"><span class="tab-ic">🏗️</span>만들기</button>
-  <button class="tab" onclick="switchTab(1)"><span class="tab-ic">📇</span>인원명부</button>
-  <button class="tab" onclick="switchTab(2)"><span class="tab-ic">🏢</span>집합장소</button>
-  <button class="tab" onclick="switchTab(3)"><span class="tab-ic">📌</span>고정멤버</button>
+  <button class="tab on" onclick="switchTab(0)"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>만들기</button>
+  <button class="tab" onclick="switchTab(1)"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>인원명부</button>
+  <button class="tab" onclick="switchTab(2)"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>집합장소</button>
+  <button class="tab" onclick="switchTab(3)"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V5a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>고정멤버</button>
+  <button class="tab" onclick="switchTab(4)"><svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>양식관리</button>
 </div>
 
 <!-- TAB 0 -->
@@ -469,6 +482,55 @@ select:focus{outline:none;border-color:var(--yd);box-shadow:0 0 0 3px rgba(254,2
   </div>
 </div></div>
 
+<!-- TAB 4 — 양식 관리 -->
+<div class="pane" id="pane-templates"><div class="wrap">
+  <div class="card">
+    <div class="ctitle">📝 메시지 양식 관리</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.55">
+      자동 발송되는 3가지 메시지의 양식을 직접 편집할 수 있습니다.<br>
+      편집 후 자동 저장되며, 다음 단톡방 생성부터 적용됩니다.
+    </p>
+    <div class="notice" style="margin-bottom:14px">
+      💡 <strong>자리표시자</strong> (본사·대구 환영 메시지에서 사용):<br>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{date}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{bldg}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{bldgAddr}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{locName}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{locAddr}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{locLink}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{departTime}</code>
+      <code style="font-size:11px;background:#fff;padding:1px 4px;border-radius:3px;border:1px solid var(--border)">{memo}</code>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-title">🏢 본사 환영 메시지 양식</div>
+      <textarea id="tpl-main" class="tpl-ta" rows="14" oninput="onTplInput('main')"></textarea>
+      <div class="tpl-actions">
+        <span class="tpl-status" id="tpl-main-status"></span>
+        <button class="fbtn sec" onclick="onTplReset('main')">기본값 복원</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-title">📍 대구 환영 메시지 양식</div>
+      <textarea id="tpl-daegu" class="tpl-ta" rows="12" oninput="onTplInput('daegu')"></textarea>
+      <div class="tpl-actions">
+        <span class="tpl-status" id="tpl-daegu-status"></span>
+        <button class="fbtn sec" onclick="onTplReset('daegu')">기본값 복원</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-title">🗳 투표 안내 메시지 양식 <span style="font-size:10px;color:var(--text2);font-weight:500">(투표 등록 후 단톡방에 전송)</span></div>
+      <textarea id="tpl-vote-guide" class="tpl-ta" rows="10" oninput="onTplInput('voteGuide')"></textarea>
+      <div class="tpl-actions">
+        <span class="tpl-status" id="tpl-vote-guide-status"></span>
+        <button class="fbtn sec" onclick="onTplReset('voteGuide')">기본값 복원</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
 <div class="toast" id="toast"></div>
 
 <!-- (도우미 모드 모달은 동적으로 생성됨) -->
@@ -493,11 +555,59 @@ function rosterTitle(name){
 
 // ═══ TABS ═══════════════════════════════════════════════════════
 function switchTab(i){
+  var panes = ['pane0', 'pane-roster', 'pane-venue', 'pane1', 'pane-templates'];
   document.querySelectorAll('.tab').forEach(function(t,j){ t.classList.toggle('on',j===i); });
-  document.querySelectorAll('.pane').forEach(function(p,j){ p.classList.toggle('on',j===i); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
+  var pane = document.getElementById(panes[i]);
+  if(pane) pane.classList.add('on');
   if(i===1) renderRoster();
   if(i===2) renderVenueList();
   if(i===3) renderFixedList();
+  if(i===4) renderTemplates();
+}
+
+// ═══ 양식 관리 탭 ═══════════════════════════════════════════════
+function renderTemplates(){
+  var elMain = document.getElementById('tpl-main');
+  var elDaegu = document.getElementById('tpl-daegu');
+  var elVote = document.getElementById('tpl-vote-guide');
+  if(elMain) elMain.value = getTplMain();
+  if(elDaegu) elDaegu.value = getTplDaegu();
+  if(elVote) elVote.value = getTplVoteGuide();
+  showTplStatus('main', '저장됨', 'saved');
+  showTplStatus('daegu', '저장됨', 'saved');
+  showTplStatus('voteGuide', '저장됨', 'saved');
+}
+
+function onTplInput(which){
+  var id = which === 'voteGuide' ? 'tpl-vote-guide' : ('tpl-' + which);
+  var key = which === 'voteGuide' ? 'kakao_tpl_vote_guide' : ('kakao_tpl_' + which);
+  var el = document.getElementById(id);
+  if(!el) return;
+  saveTemplate(key, el.value);
+  showTplStatus(which, '✓ 저장됨', 'saved');
+  // 본사/대구 양식 변경 시 환영 메시지 미리보기도 갱신
+  if(which === 'main' || which === 'daegu') updateWelcomeMessage();
+}
+
+function onTplReset(which){
+  if(!confirm('이 양식을 기본값으로 되돌릴까요?')) return;
+  var id = which === 'voteGuide' ? 'tpl-vote-guide' : ('tpl-' + which);
+  var key = which === 'voteGuide' ? 'kakao_tpl_vote_guide' : ('kakao_tpl_' + which);
+  var defaults = { main: DEFAULT_TPL_MAIN, daegu: DEFAULT_TPL_DAEGU, voteGuide: DEFAULT_TPL_VOTE_GUIDE };
+  resetTemplate(key);
+  var el = document.getElementById(id);
+  if(el) el.value = defaults[which];
+  showTplStatus(which, '✓ 기본값으로 복원됨', 'saved');
+  if(which === 'main' || which === 'daegu') updateWelcomeMessage();
+}
+
+function showTplStatus(which, text, cls){
+  var id = which === 'voteGuide' ? 'tpl-vote-guide-status' : ('tpl-' + which + '-status');
+  var el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = text;
+  el.className = 'tpl-status ' + (cls || '');
 }
 
 // ═══ UPLOAD ═════════════════════════════════════════════════════
@@ -1605,48 +1715,52 @@ function setMessageStyle(style){
   updateWelcomeMessage();
 }
 
-// 환영 메시지 생성
-// style: '본사' (기본) — 집합장소 정보 + 출발시간 + 메모
-//        '대구'        — 집합장소 안내 문구 (지태호 팀장 공유 예정)
+// ═══ 메시지 양식 관리 ═══════════════════════════════
+// 자리표시자: {date} {bldg} {bldgAddr} {locName} {locAddr} {locLink} {departTime} {memo}
+// 사용자가 양식 관리 탭에서 편집 가능. localStorage에 저장.
+
+var DEFAULT_TPL_MAIN = '안녕하세요, 홈체크입니다.\n\n{date}\n{bldg}\n단톡방입니다.\n\n현장 주소 : {bldgAddr}\n\n집합장소명 : {locName}\n주소 : {locAddr}\n({locLink})\n\n각자 식사 후\n**9시 30분까지**\n늦지 않게 *집합장소로 와주시면 됩니다.\n\n사무실 출발 시간은\n**{departTime} 입니다.\n\n도착하시는대로 위치 공유 부탁드립니다.\n\n{memo}';
+
+var DEFAULT_TPL_DAEGU = '안녕하세요, 홈체크입니다.\n\n{date}\n{bldg}\n단톡방입니다.\n\n현장 주소 : {bldgAddr}\n\n집합장소는 지태호 팀장님이 공유해주실 예정입니다.\n조금만 기다려주세요.\n\n각자 식사 후\n**9시 30분까지**\n늦지 않게 *집합장소로 와주시면 됩니다.\n\n도착하시는대로 위치 공유 부탁드립니다.';
+
+var DEFAULT_TPL_VOTE_GUIDE = "집합장소까지\n본인 차량으로 오시는 분들은 \n'본인차량 이동'에 투표하시고, \n\n대중교통으로 오시는 경우에는 \n'대중교통 이동'에\n\n기흥 사무실에서 같이 출발하시는 경우에는\n'사무실차량 이동'에 투표해주시면 됩니다.";
+
+function loadTemplate(key, defaultVal){
+  var v = localStorage.getItem(key);
+  return (v !== null && v !== undefined) ? v : defaultVal;
+}
+function saveTemplate(key, val){ localStorage.setItem(key, val); }
+function resetTemplate(key){ localStorage.removeItem(key); }
+
+function getTplMain(){ return loadTemplate('kakao_tpl_main', DEFAULT_TPL_MAIN); }
+function getTplDaegu(){ return loadTemplate('kakao_tpl_daegu', DEFAULT_TPL_DAEGU); }
+function getTplVoteGuide(){ return loadTemplate('kakao_tpl_vote_guide', DEFAULT_TPL_VOTE_GUIDE); }
+
+// 환영 메시지 생성 — 양식 자리표시자 치환
+// style: '본사' (기본) | '대구'
 function buildWelcomeMessage(date, bldg, venue, style){
   style = style || loadMessageStyle();
+  var tpl = (style === '대구') ? getTplDaegu() : getTplMain();
   function f(v){ return v ? v : '[입력 필요]'; }
   var dateStr = formatDateForMessage(date);
-  var lines = [];
-  lines.push('안녕하세요, 홈체크입니다.');
-  lines.push('');
-  lines.push(dateStr);
-  lines.push(bldg);
-  lines.push('단톡방입니다.');
-  lines.push('');
-  lines.push('현장 주소 : ' + f(venue && venue.bldgAddr));
-  lines.push('');
-  if(style === '대구'){
-    lines.push('집합장소는 지태호 팀장님이 공유해주실 예정입니다.');
-    lines.push('조금만 기다려주세요.');
-  } else {
-    // 본사 양식
-    lines.push('집합장소명 : ' + f(venue && venue.locName));
-    lines.push('주소 : ' + f(venue && venue.locAddr));
-    lines.push('(' + f(venue && venue.locLink) + ')');
-  }
-  lines.push('');
-  lines.push('각자 식사 후');
-  lines.push('**9시 30분까지**');
-  lines.push('늦지 않게 *집합장소로 와주시면 됩니다.');
-  lines.push('');
-  if(style === '본사'){
-    lines.push('사무실 출발 시간은');
-    lines.push('**' + f(venue && venue.departTime) + ' 입니다.');
-    lines.push('');
-  }
-  lines.push('도착하시는대로 위치 공유 부탁드립니다.');
-  // 본사 양식만 메모 추가
-  if(style === '본사' && venue && venue.memo && venue.memo.trim()){
-    lines.push('');
-    lines.push(venue.memo.trim());
-  }
-  return lines.join('\n');
+  var memo = (venue && venue.memo && venue.memo.trim()) ? venue.memo.trim() : '';
+  var vars = {
+    '{date}': dateStr,
+    '{bldg}': bldg || '[입력 필요]',
+    '{bldgAddr}': f(venue && venue.bldgAddr),
+    '{locName}': f(venue && venue.locName),
+    '{locAddr}': f(venue && venue.locAddr),
+    '{locLink}': f(venue && venue.locLink),
+    '{departTime}': f(venue && venue.departTime),
+    '{memo}': memo,
+  };
+  var result = tpl;
+  Object.keys(vars).forEach(function(k){
+    result = result.split(k).join(vars[k]);
+  });
+  // 메모 자리표시자가 빈 값이면 연속 줄바꿈 정리
+  result = result.replace(/\n\n\n+/g, '\n\n').replace(/\n\n$/, '');
+  return result;
 }
 
 function updateWelcomeMessage(){
@@ -1817,6 +1931,9 @@ function buildClipboardPayload(groupName, initialNames, additionalNames, manualN
   if (voteEnabled) {
     parts.push('---VOTE---');
     parts.push('true');
+    // 투표 안내 메시지 양식 (사용자가 양식 관리 탭에서 편집한 값)
+    parts.push('---VOTE-GUIDE---');
+    parts.push(getTplVoteGuide());
   }
   // 환영 메시지 (있으면 페이로드 마지막에 — 멀티라인이라 끝에 두는 게 안전)
   if (welcomeMsg && welcomeMsg.trim()) {
@@ -1946,9 +2063,11 @@ function downloadHelperAHK(){
   lines.push('    data["additionalNames"] := []');
   lines.push('    data["manualNames"] := []');
   lines.push('    data["welcomeMessage"] := ""');
+  lines.push('    data["voteGuide"] := ""');
   lines.push('    data["vote"] := false');
   lines.push('    section := "initial"');
   lines.push('    welcomeMessage := ""');
+  lines.push('    voteGuide := ""');
   lines.push('    Loop lines.Length - 2 {');
   lines.push('        i := A_Index + 2');
   lines.push('        line := lines[i]');
@@ -1957,6 +2076,13 @@ function downloadHelperAHK(){
   lines.push('            if (welcomeMessage != "")');
   lines.push('                welcomeMessage .= "`n"');
   lines.push('            welcomeMessage .= line');
+  lines.push('            continue');
+  lines.push('        }');
+  lines.push('        if (section = "voteGuide") {');
+  lines.push('            ; 투표 안내 메시지도 빈 줄/공백 보존');
+  lines.push('            if (voteGuide != "")');
+  lines.push('                voteGuide .= "`n"');
+  lines.push('            voteGuide .= line');
   lines.push('            continue');
   lines.push('        }');
   lines.push('        trimmed := Trim(line)');
@@ -1972,6 +2098,10 @@ function downloadHelperAHK(){
   lines.push('        }');
   lines.push('        if (trimmed = "---VOTE---") {');
   lines.push('            section := "vote"');
+  lines.push('            continue');
+  lines.push('        }');
+  lines.push('        if (trimmed = "---VOTE-GUIDE---") {');
+  lines.push('            section := "voteGuide"');
   lines.push('            continue');
   lines.push('        }');
   lines.push('        if (trimmed = "---WELCOME---") {');
@@ -1990,6 +2120,7 @@ function downloadHelperAHK(){
   lines.push('            data["manualNames"].Push(trimmed)');
   lines.push('    }');
   lines.push('    data["welcomeMessage"] := welcomeMessage');
+  lines.push('    data["voteGuide"] := voteGuide');
   lines.push('    return data');
   lines.push('}');
   lines.push('');
@@ -2170,7 +2301,7 @@ function downloadHelperAHK(){
   lines.push('; 최종 완료 안내 — 수동 멤버 명단 + 환영 메시지 클립보드 복사');
   lines.push(';   환영 메시지는 클립보드에 복사된 상태로 종료 (자동 전송 X)');
   lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('ShowFinalSummary(groupName, manualNames, welcomeMessage, voteEnabled) {');
+  lines.push('ShowFinalSummary(groupName, manualNames, welcomeMessage, voteEnabled, voteGuide) {');
   lines.push('    ; 페이로드에 환영 메시지가 있으면 그것 사용, 없으면 짧은 기본 메시지로 폴백');
   lines.push('    if (welcomeMessage = "")');
   lines.push('        welcomeMessage := "안녕하세요, 홈체크입니다.`n" . groupName . " 단톡방입니다."');
@@ -2186,7 +2317,7 @@ function downloadHelperAHK(){
   lines.push('    ');
   lines.push('    ; ── 투표 자동 생성 (옵션) ──');
   lines.push('    if (voteEnabled) {');
-  lines.push('        SendVotePoll(groupName)');
+  lines.push('        SendVotePoll(groupName, voteGuide)');
   lines.push('    }');
   lines.push('    ');
   lines.push('    ; ── 완료 안내 ──');
@@ -2206,7 +2337,7 @@ function downloadHelperAHK(){
   lines.push('; ════════════════════════════════════════════════════════');
   lines.push('; 투표 자동 생성 — 사용자가 지정한 단축키 시퀀스');
   lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('SendVotePoll(groupName) {');
+  lines.push('SendVotePoll(groupName, voteGuide) {');
   lines.push('    DELAY_KEY := 120          ; 일반 키 입력 후 짧은 대기');
   lines.push('    DELAY_PASTE := 350        ; 붙여넣기 후 카카오톡 처리 대기');
   lines.push('    DELAY_DIALOG := 900       ; 다이얼로그 열림/닫힘 대기');
@@ -2309,7 +2440,11 @@ function downloadHelperAHK(){
   lines.push('    Sleep(300)');
   lines.push('    ');
   lines.push('    ; ── 보낼 메시지 클립보드 복사 + Ctrl+V + Enter ──');
-  lines.push('    voteGuide := "집합장소까지`n본인 차량으로 오시는 분들은 `n\'본인차량 이동\'에 투표하시고, `n`n대중교통으로 오시는 경우에는 `n\'대중교통 이동\'에`n`n기흥 사무실에서 같이 출발하시는 경우에는`n\'사무실차량 이동\'에 투표해주시면 됩니다."');
+  lines.push('    ; voteGuide는 SendVotePoll 인자로 전달됨 (양식 관리 탭에서 편집 가능)');
+  lines.push('    if (voteGuide = "") {');
+  lines.push('        ; 빈 값이면 기본 안내 메시지 폴백');
+  lines.push('        voteGuide := "집합장소까지`n본인 차량으로 오시는 분들은 `n\'본인차량 이동\'에 투표하시고, `n`n대중교통으로 오시는 경우에는 `n\'대중교통 이동\'에`n`n기흥 사무실에서 같이 출발하시는 경우에는`n\'사무실차량 이동\'에 투표해주시면 됩니다."');
+  lines.push('    }');
   lines.push('    ');
   lines.push('    ; 클립보드 클리어 후 메시지 넣기 + 채워질 때까지 대기');
   lines.push('    A_Clipboard := ""');
@@ -2539,7 +2674,7 @@ function downloadHelperAHK(){
   lines.push('    UpdateProgress(invitedMembers.Length, totalProg, "✓ " . invitedMembers.Length . " / " . totalProg . " 명 완료")');
   lines.push('    Sleep(1200)');
   lines.push('    CloseProgressGui()');
-  lines.push('    ShowFinalSummary(groupName, manualNames, data["welcomeMessage"], data["vote"])');
+  lines.push('    ShowFinalSummary(groupName, manualNames, data["welcomeMessage"], data["vote"], data["voteGuide"])');
   lines.push('}');
   lines.push('');
   lines.push('^F12:: {');
