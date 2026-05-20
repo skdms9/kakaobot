@@ -2186,7 +2186,7 @@ function downloadHelperAHK(){
   lines.push('    ');
   lines.push('    ; ── 투표 자동 생성 (옵션) ──');
   lines.push('    if (voteEnabled) {');
-  lines.push('        SendVotePoll()');
+  lines.push('        SendVotePoll(groupName)');
   lines.push('    }');
   lines.push('    ');
   lines.push('    ; ── 완료 안내 ──');
@@ -2206,7 +2206,7 @@ function downloadHelperAHK(){
   lines.push('; ════════════════════════════════════════════════════════');
   lines.push('; 투표 자동 생성 — 사용자가 지정한 단축키 시퀀스');
   lines.push('; ════════════════════════════════════════════════════════');
-  lines.push('SendVotePoll() {');
+  lines.push('SendVotePoll(groupName) {');
   lines.push('    DELAY_KEY := 120          ; 일반 키 입력 후 짧은 대기');
   lines.push('    DELAY_PASTE := 350        ; 붙여넣기 후 카카오톡 처리 대기');
   lines.push('    DELAY_DIALOG := 900       ; 다이얼로그 열림/닫힘 대기');
@@ -2295,6 +2295,16 @@ function downloadHelperAHK(){
   lines.push('    ');
   lines.push('    ; ── 투표 다이얼로그 완전 닫힘 + 채팅창 입력란 활성화 추가 대기 ──');
   lines.push('    Sleep(1500)  ; 투표 등록 완료 후 채팅창 포커스 안정 대기 (안 맞으면 늘려)');
+  lines.push('    ');
+  lines.push('    ; ── 단톡방 채팅창 명시적 활성화 (투표 후 포커스 보장) ──');
+  lines.push('    try {');
+  lines.push('        if WinExist(groupName " ahk_exe KakaoTalk.exe") {');
+  lines.push('            WinActivate');
+  lines.push('        } else if WinExist("ahk_exe KakaoTalk.exe") {');
+  lines.push('            WinActivate');
+  lines.push('        }');
+  lines.push('        Sleep(700)  ; 윈도우 활성화 + 메시지 입력란 자동 포커스 대기');
+  lines.push('    }');
   lines.push('    ');
   lines.push('    ; ── 투표 안내 메시지 자동 전송 ──');
   lines.push('    voteGuide := "집합장소까지`n본인 차량으로 오시는 분들은 `n\'본인차량 이동\'에 투표하시고, `n`n대중교통으로 오시는 경우에는 `n\'대중교통 이동\'에`n`n기흥 사무실에서 같이 출발하시는 경우에는`n\'사무실차량 이동\'에 투표해주시면 됩니다."');
