@@ -2079,7 +2079,11 @@ function downloadHelperAHK(){
   lines.push('            continue');
   lines.push('        }');
   lines.push('        if (section = "voteGuide") {');
-  lines.push('            ; 투표 안내 메시지도 빈 줄/공백 보존');
+  lines.push('            ; 투표 안내 메시지도 빈 줄/공백 보존 — 단, ---WELCOME--- 마커는 섹션 전환');
+  lines.push('            if (Trim(line) = "---WELCOME---") {');
+  lines.push('                section := "welcome"');
+  lines.push('                continue');
+  lines.push('            }');
   lines.push('            if (voteGuide != "")');
   lines.push('                voteGuide .= "`n"');
   lines.push('            voteGuide .= line');
