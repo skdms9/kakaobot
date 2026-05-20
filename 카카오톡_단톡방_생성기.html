@@ -2271,7 +2271,9 @@ function downloadHelperAHK(){
   lines.push('    SendInput("{Enter}")');
   lines.push('    Sleep(DELAY_DIALOG)');
   lines.push('    ');
-  lines.push('    ; 항목4 붙여넣기');
+  lines.push('    ; TAB키 1번 + 항목4 붙여넣기');
+  lines.push('    SendInput("{Tab 1}")');
+  lines.push('    Sleep(DELAY_KEY)');
   lines.push('    A_Clipboard := "사무실차량 이동"');
   lines.push('    Sleep(DELAY_KEY)');
   lines.push('    SendInput("^v")');
